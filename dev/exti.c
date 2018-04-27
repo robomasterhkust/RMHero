@@ -2,15 +2,17 @@
  * exti.c
  *
  *  Created on: 24 Dec 2017
- *      Author: Alex Wong
+ *      Author: Alex Wong, Xu Xinyuan
  *
  *  Configures External Interrupt Functionality
  *
  */
 
+#include <main.h>
 #include "ch.h"
 #include "hal.h"
 #include "exti.h"
+#include "auto_fetch_task.h"
 #include "can_motor_task.h"
 #include "can.h"
 #include "adis16470.h"
@@ -18,13 +20,15 @@
 //comment out the line below to disable motor testing
 //#define MOTOR_TEST
 
-#define DEBOUNCE_TIME 100
+#define DEBOUNCE_TIME 1000
 
 //extern thread_reference_t imu_adis_thread_ref;
 extern thread_reference_t auto_fetch_thread_ref;
 
 static int count = 0;
 static systime_t last_exti_0_time;
+volatile Auto_Fetch_Task_Struct* AFT_struct_p;
+
 
 /*
  * Turns on all chassis motor for 1 sec when MotorOn is TRUE
@@ -72,11 +76,10 @@ static THD_FUNCTION(MotorToggleThread, arg)
 }
 #endif
 
-
 /**
  * @brief EXTI 0 CALLBACK with debouncing
  *          Configured for the hero switch to trigger the auto fetching function
- *          Since the switch is noisy, debounce for 10 ms
+ *          Since the switch is noisy, debounce for 100 ms
  */
 static void ext_switch_cb0(EXTDriver *extp, expchannel_t channel)
 {
@@ -84,15 +87,14 @@ static void ext_switch_cb0(EXTDriver *extp, expchannel_t channel)
     (void) channel;
 
     // Debouncing for the mechanical swtich
-    if (chVTGetSystemTimeX() > last_exti_0_time + MS2ST(DEBOUNCE_TIME))
-    {
+    if (chVTGetSystemTimeX() > last_exti_0_time + MS2ST(DEBOUNCE_TIME)) {
         last_exti_0_time = chVTGetSystemTimeX();
-
-        LEDG3_TOGGLE();
+        LEDG7_TOGGLE();
         chSysLockFromISR();
         chThdResumeI(&auto_fetch_thread_ref, MSG_OK);
         chSysUnlockFromISR();
     }
+    else LEDG2_TOGGLE(); //if in the debouncing time
 }
 
 /*
@@ -104,9 +106,15 @@ static void ext_switch_cb1(EXTDriver *extp, expchannel_t channel)
     (void) extp;
     (void) channel;
 
-//    chSysLockFromISR();
-//    chThdResumeI(&auto_fetch_thread_ref, MSG_OK);
-//    chSysUnlockFromISR();
+    // Debouncing for the mechanical swtich
+    if (chVTGetSystemTimeX() > last_exti_0_time + MS2ST(DEBOUNCE_TIME))
+    {
+        last_exti_0_time = chVTGetSystemTimeX();
+
+        chSysLockFromISR();
+//        chThdResumeI(&auto_fetch_thread_ref, MSG_OK);
+        chSysUnlockFromISR();
+    }
 }
 
 /*
@@ -119,7 +127,8 @@ static void ext_key_cb2(EXTDriver *extp, expchannel_t channel)
     (void) channel;
 
     chSysLockFromISR();
-    LEDG_TOGGLE(); // Changed to other functions
+    LEDG7_TOGGLE(); // Changed to other functions
+    chThdResumeI(&auto_fetch_thread_ref, MSG_OK);
     chSysUnlockFromISR();
 }
 
@@ -132,9 +141,16 @@ static void ext_switch_cb3(EXTDriver *extp, expchannel_t channel)
     (void) extp;
     (void) channel;
 
-//    chSysLockFromISR();
-//    chThdResumeI(&auto_fetch_thread_ref, MSG_OK);
-//    chSysUnlockFromISR();
+    // Debouncing for the mechanical swtich
+    if (chVTGetSystemTimeX() > last_exti_0_time + MS2ST(DEBOUNCE_TIME))
+    {
+        last_exti_0_time = chVTGetSystemTimeX();
+
+        LEDG3_TOGGLE();
+        chSysLockFromISR();
+        //chThdResumeI(&auto_fetch_thread_ref, MSG_OK);
+        chSysUnlockFromISR();
+    }
 }
 
 /*
@@ -182,14 +198,12 @@ static const EXTConfig extcfg = {
         {
                 {EXT_CH_MODE_RISING_EDGE | EXT_CH_MODE_AUTOSTART |
                  EXT_MODE_GPIOA, ext_switch_cb0},   //EXTI0
-                {EXT_CH_MODE_DISABLED, NULL},
-//                {EXT_CH_MODE_RISING_EDGE | EXT_CH_MODE_AUTOSTART |
-//                 EXT_MODE_GPIOA, ext_switch_cb1},   //EXTI1
+                {EXT_CH_MODE_RISING_EDGE | EXT_CH_MODE_AUTOSTART |
+                 EXT_MODE_GPIOA, ext_switch_cb1},   //EXTI1
                 {EXT_CH_MODE_RISING_EDGE | EXT_CH_MODE_AUTOSTART |
                  EXT_MODE_GPIOB, ext_key_cb2},   //EXTI2
-                {EXT_CH_MODE_DISABLED, NULL},
-//                {EXT_CH_MODE_RISING_EDGE | EXT_CH_MODE_AUTOSTART |
-//                 EXT_MODE_GPIOA, ext_switch_cb3},   //EXTI3
+                {EXT_CH_MODE_RISING_EDGE | EXT_CH_MODE_AUTOSTART |
+                 EXT_MODE_GPIOA, ext_switch_cb3},   //EXTI3
                 {EXT_CH_MODE_DISABLED, NULL},   //EXTI4
                 {EXT_CH_MODE_RISING_EDGE | EXT_CH_MODE_AUTOSTART |
                  EXT_MODE_GPIOC, extcb5},   //EXTI5, ADIS shield
@@ -219,9 +233,13 @@ void extiinit(void)
 {
 
     extStart(&EXTD1, &extcfg);
+    /*
+     *Enable switch exti to auto-fetch task.
+     */
     extChannelEnable(&EXTD1, 0);
+    extChannelEnable(&EXTD1, 1);
+    extChannelEnable(&EXTD1, 3);
     last_exti_0_time = chVTGetSystemTimeX();
-
     extChannelEnable(&EXTD1, 2);
 //    extChannelEnable(&EXTD1, 5);
 //    extChannelEnable(&EXTD1, 10);

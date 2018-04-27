@@ -4,6 +4,7 @@
  * @brief   definitions of shell command functions
  */
 
+#include <main.h>
 #include "main.h"
 #include "shellcfg.h"
 
@@ -100,26 +101,40 @@ extern volatile int32_t z_accl;
 /* Definitions of shell command functions                                    */
 /*===========================================================================*/
 static THD_WORKING_AREA(Shell_thread_wa, 1024);
-void cmd_test(BaseSequentialStream * chp, int argc, char *argv[])
-{
-  (void) argc,argv;
-  PIMUStruct PIMU = imu_get();
-//  GimbalStruct* gimbal = gimbal_get();
+void cmd_test(BaseSequentialStream * chp, int argc, char *argv[]) {
+    (void) argc, argv;
+    volatile Auto_Fetch_Task_Struct *p_AFT = get_AFT_struct();
+    //GimbalStruct* gimbal = gimbal_get();
+    PIMUStruct PIMU = imu_get();
+    float_t ax=0;
+    float_t vx=0;
+    float_t xi=0;
+    while (1) {
+        ax = PIMU->accelData[X];
+        vx += ax*INTEGRAL_dt_ms/1000; // m/s=mm/ms
+        xi += vx * INTEGRAL_dt_ms;
+        chprintf(chp, "AX: %f\r\n", ax);
+
+        chprintf(chp, "VX: %f\r\n", vx);
+        chprintf(chp, "IX: %f\r\n", xi);
+        chThdSleepMilliseconds(INTEGRAL_dt_ms);
+}
+//  PIMUStruct PIMU = imu_get();
 //  GimbalStruct* gimbal = get_gimbal_simple_controller();
-    RC_Ctl_t* pRC = RC_get();
-    volatile ChassisEncoder_canStruct* encoder = can_getChassisMotor();
+// RC_Ctl_t* pRC = RC_get();
+//    volatile ChassisEncoder_canStruct* encoder = can_getChassisMotor();
 //    imuStructADIS16470* imu_adis = imu_adis_get();
 
-  chprintf(chp,"AccelX: %f\r\n",PIMU->accelData[X]);
-  chprintf(chp,"AccelY: %f\r\n",PIMU->accelData[Y]);
-  chprintf(chp,"AccelZ: %f\r\n",PIMU->accelData[Z]);
+//  chprintf(chp,"AccelX: %f\r\n",PIMU->accelData[X]);
+//  chprintf(chp,"AccelY: %f\r\n",PIMU->accelData[Y]);
+//  chprintf(chp,"AccelZ: %f\r\n",PIMU->accelData[Z]);
 
 //  chprintf(chp,"Gimbal Pitch: %f\r\n",gimbal->motor[1]._angle);
 //  chprintf(chp,"Gimbal Yaw: %f\r\n",gimbal->motor[0]._angle);
-  chprintf(chp,"IMU Pitch: %f\r\n",PIMU->euler_angle[Pitch]);
-    chprintf(chp, "rc command: %f\r\n", pRC->rc.channel0);
+//  chprintf(chp,"IMU Pitch: %f\r\n",PIMU->euler_angle[Pitch]);
+//    chprintf(chp, "rc command: %f\r\n", pRC->rc.channel0);
 
-    chprintf(chp, "encoder speed: %f\r\n", encoder[2].raw_speed);
+//    chprintf(chp, "encoder speed: %f\r\n", encoder[2].raw_speed);
 
 /*
  *  chprintf(chp, "adis16470 reading gyro x: %d \r\n", imu_adis->gyro_raw_data[0]);
