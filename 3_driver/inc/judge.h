@@ -102,91 +102,91 @@ typedef struct projectile_fb_t{
 #define JUDGE_DATA_TYPES            8
 
 typedef enum{
-    GAMEINFO = 1,
-    HLTHINFO,
-    PROJECTILEINFO,
-    POWERINFO,
-    RFIDINFO,
-    ENDGAMEINFO,
-    BUFFERINFO,
-    POSITIONINFO,
-    USERDATA = 0x0100
-} judge_info_enum;
+  GAMEINFO = 1,
+  HLTHINFO,
+  PROJECTILEINFO,
+  POWERINFO,
+  RFIDINFO,
+  ENDGAMEINFO,
+  BUFFERINFO,
+  POSITIONINFO,
+  USERDATA = 0x0100
+};
 
 typedef struct game_info_t{
-    uint16_t      remainTime;
-    uint8_t       gameStatus;
-    uint8_t       robotLevel;
-    uint16_t      remainHealth;
-    uint16_t      fullHealth;
+  uint16_t      remainTime;
+  uint8_t       gameStatus;
+  uint8_t       robotLevel;
+  uint16_t      remainHealth;
+  uint16_t      fullHealth;
 }__attribute__((packed)) game_fb_t;
 
 typedef struct hlth_info_t{
-    uint8_t       hitPos : 4;
-    uint8_t       deltaReason : 4;
+  uint8_t       hitPos : 4;
+  uint8_t       deltaReason : 4;
 }__attribute__((packed)) hlth_fb_t;
 
 typedef struct projectile_fb_t{
-    uint8_t       bulletType;
-    uint8_t       bulletFreq;
-    float         bulletSpeed;
+  uint8_t       bulletType;
+  uint8_t       bulletFreq;
+  float         bulletSpeed;
 }__attribute__((packed)) projectile_fb_t;
 
 typedef struct power_fb_t{
-    float         volt;
-    float         current;
-    float         power;
-    float         powerBuffer;
-    uint16_t      shooterHeat0;
-    uint16_t      shooterHeat1;
+  float         volt;
+  float         current;
+  float         power;
+  float         powerBuffer;
+  uint16_t      shooterHeat0;
+  uint16_t      shooterHeat1;
 }__attribute__((packed)) power_fb_t;
 
 typedef struct rfid_fb_t{
-    uint8_t       cardType;
-    uint8_t       cardIdx;
+  uint8_t       cardType;
+  uint8_t       cardIdx;
 }__attribute__((packed)) rfid_fb_t;
 
-
 typedef struct game_over_fb_t{
-    uint8_t       winner;
+  uint8_t       winner;
 }__attribute__((packed)) game_over_fb_t;
 
 typedef struct buffer_fb_t{
-    uint8_t       powerUpType;
-    uint8_t       powerUpPercentage;
+  uint8_t       powerUpType;
+  uint8_t       powerUpPercentage;
 }__attribute__((packed)) buffer_fb_t;
 
 typedef struct location_fb_t{
-    float         x;
-    float         y;
-    float         z;
-    float         yaw;
+  float         x;
+  float         y;
+  float         z;
+  float         yaw;
 }__attribute__((packed)) location_fb_t;
 
 typedef struct judge_fb_t{
-    game_fb_t         gameInfo;
-    hlth_fb_t         hlthInfo;
-    projectile_fb_t   projectileInfo;
-    power_fb_t        powerInfo;
-    rfid_fb_t         rfidInfo;
-    game_over_fb_t    gameOverInfo;
-    buffer_fb_t       bufferInfo;
-    location_fb_t     locationInfo;
+  game_fb_t         gameInfo;
+  hlth_fb_t         hlthInfo;
+  projectile_fb_t   projectileInfo;
+  power_fb_t        powerInfo;
+  rfid_fb_t         rfidInfo;
+  game_over_fb_t    gameOverInfo;
+  buffer_fb_t       bufferInfo;
+  location_fb_t     locationInfo;
 }__attribute__((packed)) judge_fb_t;
 
 typedef struct user_data_t{
-    float         data1;
-    float         data2;
-    float         data3;
-    uint8_t       mask;
+  float         data1;
+  float         data2;
+  float         data3;
+  uint8_t       mask;
 }__attribute__((packed)) user_data_t;
 
-#endif
+#endif 
 
-judge_fb_t* judgeDataGet(void);
+judge_fb_t judgeDataGet(void);
 
 void judgedecode(void);
 
 void judgeinit(void);
 
 #endif /* INC_JUDGE_H_ */
+
