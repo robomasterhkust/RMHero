@@ -56,7 +56,7 @@ static THD_FUNCTION(auto_fetch_thread_position,ptr){
 
 
 void aft_process_controller(){
-    thread_t* p_position_thread= chThdCreateStatic(auto_fetch_thread_position_wa, sizeof(auto_fetch_thread_imu_wa),
+    thread_t* p_position_thread= chThdCreateStatic(auto_fetch_thread_position_wa, sizeof(auto_fetch_thread_position_wa),
                            NORMALPRIO+1, auto_fetch_thread_position, NULL);
     while(AFT_struct.x_i<AFT_X_SETPOINT_mm)chassis_move();
     fetch_process();
