@@ -418,7 +418,7 @@ OSAL_IRQ_HANDLER(STM32_UART5_HANDLER) {
 #if !defined(STM32_USART6_HANDLER)
 #error "STM32_USART6_HANDLER not defined"
 #endif
-/**
+/*
  * @brief   USART6 IRQ handler.
  *
  * @isr
