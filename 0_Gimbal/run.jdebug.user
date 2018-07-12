@@ -1,0 +1,10 @@
+OpenWindow="Memory Content1", DockArea=RIGHT, x=0, y=1, w=480, h=268, FilterBarShown=0, 
+OpenWindow="Registers", DockArea=RIGHT, x=0, y=2, w=480, h=227, FilterBarShown=0, 
+OpenWindow="Console", DockArea=RIGHT, x=0, y=4, w=480, h=153, FilterBarShown=0, 
+OpenWindow="Watched Data", DockArea=FLOATING, x=1244, y=493, w=480, h=333, FilterBarShown=1, 
+OpenWindow="Source Files", DockArea=RIGHT, x=0, y=0, w=480, h=89, FilterBarShown=1, 
+OpenWindow="Disassembly", DockArea=RIGHT, x=0, y=3, w=480, h=225, FilterBarShown=0, ExecCountersShown=0
+OpenToolbar="Debug", Floating=0, x=0, y=0
+TableHeader="Registers", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Description"], ColWidths=[125;77;263]
+TableHeader="Watched Data", SortCol="Value", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location";"Size";"Refresh";"Type";"Scope"], ColWidths=[168;84;84;48;67;305;59]
+TableHeader="Source Files", SortCol="File", SortOrder="ASCENDING", VisibleCols=["Status";"Size";"#Insts";"File";"Path"], ColWidths=[65;48;57;125;170]
