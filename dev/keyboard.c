@@ -128,6 +128,11 @@ void keyboard_chassis_process(chassisStruct* chassisP,Gimbal_Send_Dbus_canStruct
     if(chassisP->ctrl_mode == SAVE_LIFE ||chassisP->ctrl_mode ==CHASSIS_STOP ){
       // Do nothing. No input
     }
+    else if(chassisP->ctrl_mode = Hero_Screen){
+      km.x_spd_limit = Down_ratio * CHASSIS_KB_MAX_SPEED_X ;
+      km.y_spd_limit = Down_ratio * CHASSIS_KB_MAX_SPEED_Y ;
+      move_direction_ctrl(bitmap[KEY_S], bitmap[KEY_W], bitmap[KEY_D], bitmap[KEY_A]);
+    }
     else if(bitmap[KEY_R]){
       if(bitmap[KEY_W] || bitmap[KEY_S] || bitmap[KEY_A] || bitmap[KEY_D]){
         chassisP->ctrl_mode = DODGE_MOVE_MODE;

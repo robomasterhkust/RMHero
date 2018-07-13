@@ -23,6 +23,7 @@ static volatile chassisStruct chassis;
 GimbalEncoder_canStruct *gimbal_p;
 RC_Ctl_t *Rc;
 judge_fb_t *JudgeP;
+int *bitmap_for_chassis;
 pi_controller_t motor_vel_controllers[CHASSIS_MOTOR_NUM];
 pid_controller_t chassis_heading_controller;
 pid_controller_t dancing_controller;
@@ -33,7 +34,10 @@ rc_ctrl_t rm;
 Gimbal_Send_Dbus_canStruct *pRC;
 float gimbal_initP = 0;
 float record = 0;
-bool reboot = false;
+
+
+static bool reboot = false;
+static bool G_press = false;
 
 #define TWIST_ANGLE 150
 #define TWIST_PERIOD 800
@@ -259,14 +263,33 @@ static THD_FUNCTION(chassis_control, p) {
       chassis.power_limit = 80;
     }
 
-    if (keyboard_enable(pRC)) {
+    if(keyboard_enable(pRC)) {
       keyboard_chassis_process(&chassis, pRC);
       rm.vx = 0;
       rm.vy = 0;
-    } else {
+    }else{
       rm_chassis_process();
       keyboard_reset();
     }
+
+    if(bitmap_for_chassis[KEY_G]){
+      if(!G_press){
+        if(chassis.ctrl_mode != Hero_Screen){
+          chassis.ctrl_mode = Hero_Screen;
+        }
+        else{
+          chassis.ctrl_mode = MANUAL_FOLLOW_GIMBAL;
+        }
+      }
+      G_press = true;
+    }
+    else{
+      G_press = false;
+    }
+
+
+
+
     switch (chassis.ctrl_mode) {
     case DODGE_MODE: {
       chassis.strafe_sp = 0;
@@ -293,6 +316,9 @@ static THD_FUNCTION(chassis_control, p) {
     case DODGE_MOVE_MODE: {
       dodge_move_handle();
     } break;
+    case Hero_Screen:{
+      flip_control_handle();
+    }break;
     case SAVE_LIFE: {
       save_life();
     } break;
@@ -320,6 +346,7 @@ void chassis_init(void) {
   chassis.heading_sp = 0.0f;
   chassis.rotate_x_offset = GIMBAL_X_OFFSET;
   chassis.rotate_y_offset = GIMBAL_Y_OFFSET;
+  bitmap_for_chassis = Bitmap_get();
   uint8_t i;
   // *********************temporary section*********************
   {
@@ -600,6 +627,11 @@ void chassis_twist_handle() {
   chassis.rotate_sp = chassis_heading_control(
       &dancing_controller, gimbal_p[0].radian_angle, chassis.position_ref);
 }
+void flip_control_handle(){
+
+}
+
+
 void dodge_move_handle() {
   int16_t twist_period = TWIST_MOVE_PERIOD;
   int16_t twist_angle = TWIST_MOVE_ANGLE;
