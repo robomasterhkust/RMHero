@@ -13,7 +13,15 @@ static volatile GimbalEncoder_canStruct gimbal_encoder[GIMBAL_MOTOR_NUM];
 static volatile ChassisEncoder_canStruct feeder_encoder;
 static volatile ChassisEncoder_canStruct preload_encoder;
 static volatile BarrelStatus_canStruct heat_struct;
-
+static volatile Ros_msg_canStruct ros_msg={
+  .py=0.0,
+  .pz=0.0,
+  .vy=0.0,
+  .vz=0.0,
+  .updated=false,
+  .last_py=0,
+  .last_pz=0
+};
 /*
  * 500KBaud, automatic wakeup, automatic recover
  * from abort mode.
@@ -44,6 +52,10 @@ volatile ChassisEncoder_canStruct *can_getPreloadMotor(void) {
 
 volatile BarrelStatus_canStruct *can_getHeatValue(void){
     return &heat_struct;
+}
+
+volatile Ros_msg_canStruct* can_get_ros_msg(void){
+  return &ros_msg;
 }
 
 #define CAN_ENCODER_RADIAN_RATIO    7.669904e-4f    // 2*M_PI / 0x2000
@@ -97,6 +109,28 @@ static inline void can_processGimbalEncoder
     chSysUnlock();
 }
 
+static inline void can_process_ros_command(volatile Ros_msg_canStruct * msg, const CANRxFrame* const rxmsg)
+{
+    chSysLock();
+    int16_t msg_py = (int16_t)rxmsg->data16[0];
+    int16_t msg_pz = (int16_t)rxmsg->data16[1];
+    int16_t msg_vy = (int16_t)rxmsg->data16[2];
+    int16_t msg_vz = (int16_t)rxmsg->data16[3];
+    if(abs(msg->last_py - msg_py) < 100 && abs(msg->last_pz - msg_pz) < 100){
+      msg->updated = false;
+    }else{
+      msg->updated = true;
+    }
+    msg->py = msg_py * 0.001;
+    msg->pz = msg_pz * 0.001;
+    msg->vy = msg_vy * 0.001;
+    msg->vz = msg_vz * 0.001;
+
+    msg->last_py = msg_py;
+    msg->last_pz = msg_pz;
+    chSysUnlock();
+}
+
 static void can_processEncoderMessage(const CANRxFrame *const rxmsg) {
     switch (rxmsg->SID) {
         case CAN_CHASSIS_SEND_BARREL_ID:
@@ -113,6 +147,9 @@ static void can_processEncoderMessage(const CANRxFrame *const rxmsg) {
             break;
         case CAN_GIMBAL_PITCH_FEEDBACK_MSG_ID:
             can_processGimbalEncoder(&gimbal_encoder[GIMBAL_PITCH], rxmsg);
+            break;
+        case CAN_NVIDIA_TX2_BOARD_ID:
+            can_process_ros_command(&ros_msg,rxmsg);
             break;
     }
 }
