@@ -1,3 +1,4 @@
+
 #include "ch.h"
 #include "hal.h"
 
@@ -13,6 +14,8 @@
 #define FEEDER_CAN &CAND1
 #define FEEDER_CAN_EID 0x200
 
+static RC_Ctl_t * p_rc;
+
 #define feeder_canUpdate() \
     (can_motorSetCurrent(FEEDER_CAN, FEEDER_CAN_EID,\
         feeder_set_speed, 0, 0, 0))
@@ -22,27 +25,27 @@
         0, 0, 0, 0))
 
 
-static volatile int16_t feeder_set_speed;
+//static volatile int16_t feeder_set_speed;
 
 static int16_t bullet_count = 0;
-static uint8_t bullet_threshold;
+//static uint8_t bullet_threshold;
 
-static ChassisEncoder_canStruct*    feeder_encode;
-static BarrelStatus_canStruct*      heat_encode;
+//static ChassisEncoder_canStruct*    feeder_encode;
+//static BarrelStatus_canStruct*      heat_encode;
 
-static feeder_pid_struct feeder_pid;
-static feeder_motorPosStruct feeder_motor;
+//static feeder_pid_struct feeder_pid;
+//static feeder_motorPosStruct feeder_motor;
 
-static lpfilterStruct lp_spd_feeder;
+//static lpfilterStruct lp_spd_feeder;
 
-static systime_t bullet_in_time;
-/*static */systime_t bullet_out_time;
+//static systime_t bullet_in_time;
+static systime_t bullet_out_time;
 
-static feeder_states feeder_state;
+//static feeder_states feeder_state;
 
-#define BULLET_IN_TIME_OUT 20U
+//#define BULLET_IN_TIME_OUT 20U
 #define BULLET_OUT_TIME_OUT 20U
-void bullet_in(void){
+/*void bullet_in(void){
     if( ST2MS( chVTGetSystemTimeX() - bullet_in_time) > BULLET_IN_TIME_OUT ){
         if(bullet_count < 0)
             bullet_count = 0;
@@ -50,19 +53,19 @@ void bullet_in(void){
             bullet_count++;
     }
     bullet_in_time = chVTGetSystemTimeX();
-}
+}*/
 
 void bullet_out(void){
     if( (ST2MS( chVTGetSystemTimeX() - bullet_out_time)) > BULLET_OUT_TIME_OUT ){
         set_bullet_out();
-        bullet_count--;
-        if(bullet_count < 0)
-            bullet_count = 0;
+        bullet_count++;
+        /*if(bullet_count < 0)
+            bullet_count = 0;*/
     }
     bullet_out_time = chVTGetSystemTimeX();
 }
 
-
+/*
 static void feeder_encoder_update(void){
     if(feeder_encode->updated){
         feeder_encode->updated = false;
@@ -81,10 +84,10 @@ static void feeder_encoder_update(void){
             feeder_state = FEEDER_ERROR;
         }
     }
-}
+}*/
 
 
-#define FEEDER_OUTPUT_MAX (1000.0f)
+/*#define FEEDER_OUTPUT_MAX (1000.0f)
 static volatile int16_t gripper_controlPos
         (const feeder_motorPosStruct* const motor, feeder_pid_struct* const controller)
 {
@@ -102,6 +105,27 @@ static volatile int16_t gripper_controlPos
     output = output < (-FEEDER_OUTPUT_MAX)? (-FEEDER_OUTPUT_MAX):output;
 
     return (int16_t) output;
+}*/
+
+static inline void Can_send_bullet_mouse(CANDriver *const CANx, const uint16_t SID)
+{
+    CANTxFrame txmsg;
+    Can_send_bullet_mouse_struct txCan;
+
+    txmsg.IDE = CAN_IDE_STD;
+    txmsg.SID = CAN_BULLET_SID;
+    txmsg.RTR = CAN_RTR_DATA;
+    txmsg.DLC = 0x08;
+
+    chSysLock();
+    txCan.RIGHT = p_rc->rc.channel0;
+    txCan.LEFT = p_rc->rc.channel1;
+    txCan.bullet = bullet_count;
+
+    memcpy(&(txmsg.data8), &txCan ,8);
+    chSysUnlock();
+
+    canTransmit(CANx, CAN_ANY_MAILBOX, &txmsg, MS2ST(100));
 }
 
 
@@ -111,9 +135,9 @@ static THD_WORKING_AREA(feeder_pid_control_wa, 512);
 static THD_FUNCTION(feeder_pid_control, p){
     (void) p;
 
-    while(feeder_state != FEEDER_INITED){
+    /*while(feeder_state != FEEDER_INITED){
         chThdSleepMilliseconds(5);
-    }
+    }*/
     uint32_t tick = chVTGetSystemTimeX();
     while(true){
         tick += US2ST(FEEDER_UPDATE_PERIOD_US);
@@ -124,18 +148,20 @@ static THD_FUNCTION(feeder_pid_control, p){
             tick = chVTGetSystemTimeX();
         }
 
-        feeder_encoder_update();
+        Can_send_bullet_mouse(BULLET_CAN, CAN_BULLET_SID);
+
+        /*feeder_encoder_update();
 
         feeder_set_speed = gripper_controlPos(&feeder_motor, &feeder_pid);
         if(feeder_state == FEEDER_INITED)
             feeder_canUpdate();
         else
-            feeder_canStop();
+            feeder_canStop();*/
     }
 }
 
 
-static THD_WORKING_AREA(feeder_control_wa, 256);
+/*static THD_WORKING_AREA(feeder_control_wa, 256);
 static THD_FUNCTION(feeder_control, p){
     (void) p;
 
@@ -172,15 +198,15 @@ static THD_FUNCTION(feeder_control, p){
 
         chThdSleepMilliseconds(5);
     }
-}
+}*/
 
 void feederInit(void){
 
-    feeder_state = FEEDER_UINITED;
-    bullet_in_time = chVTGetSystemTimeX();
+    //feeder_state = FEEDER_UINITED;
+    //bullet_in_time = chVTGetSystemTimeX();
     bullet_out_time = chVTGetSystemTimeX();
 
-    feeder_encode = can_getfeederMotor();
+    /*feeder_encode = can_getfeederMotor();
     heat_encode = can_getHeatValue();
     bullet_threshold = BULLET_NUM_1;
     feeder_motor.pos_sp = 0.0f;
@@ -199,6 +225,9 @@ void feederInit(void){
 
     chThdCreateStatic(feeder_control_wa, sizeof(feeder_control_wa),
                       NORMALPRIO-2, feeder_control, NULL);
+    */
+
+    p_rc = RC_get();
     chThdCreateStatic(feeder_pid_control_wa, sizeof(feeder_pid_control_wa),
                       NORMALPRIO-2, feeder_pid_control, NULL);
 

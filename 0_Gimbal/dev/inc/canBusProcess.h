@@ -58,6 +58,12 @@ typedef struct{
 } dbus_tx_canStruct;
 
 typedef struct{
+    uint8_t LEFT;
+    uint8_t RIGHT;
+    int16_t bullet;
+} Can_send_bullet_mouse_struct;
+
+typedef struct{
     uint16_t heatLimit;
     uint16_t currentHeatValue;
 } BarrelStatus_canStruct;

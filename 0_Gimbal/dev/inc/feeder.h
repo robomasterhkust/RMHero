@@ -15,6 +15,9 @@
 #define GRIPPER_CONTROL_FREQ 500U
 #define UNCONNECTED_MAX 50U
 
+#define CAN_BULLET_SID 0x123
+#define BULLET_CAN 	    &CAND2
+
 typedef struct{
     float kp;
     float ki;

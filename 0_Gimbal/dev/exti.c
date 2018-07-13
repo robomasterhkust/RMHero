@@ -34,7 +34,7 @@ static void extcb13(EXTDriver *extp, expchannel_t channel) {
   (void)channel;
 
   chSysLockFromISR();
-  bullet_in();
+  //bullet_in();
   chSysUnlockFromISR();
 }
 

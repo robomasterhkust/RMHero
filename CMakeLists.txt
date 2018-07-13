@@ -180,7 +180,6 @@ include_directories(os/various/lwip_bindings/arch)
 
 add_executable(RMInfantry2018_e75f759bdbd96b14a51cc90be5d22ee0b85aaf2a
         0_Gimbal/dev/inc/attitude.h
-        0_Gimbal/dev/inc/bullet_cnt.h
         0_Gimbal/dev/inc/calibrate_sensor.h
         0_Gimbal/dev/inc/canBusProcess.h
         0_Gimbal/dev/inc/dbus.h
@@ -195,7 +194,6 @@ add_executable(RMInfantry2018_e75f759bdbd96b14a51cc90be5d22ee0b85aaf2a
         0_Gimbal/dev/inc/shoot.h
         0_Gimbal/dev/inc/usbcfg.h
         0_Gimbal/dev/attitude.c
-        0_Gimbal/dev/bullet_cnt.c
         0_Gimbal/dev/calibrate_sensor.c
         0_Gimbal/dev/canBusProcess.c
         0_Gimbal/dev/chconf.h

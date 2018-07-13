@@ -249,13 +249,13 @@ void cmd_calibrate(BaseSequentialStream * chp, int argc, char *argv[])
   pIMU->imu_Thd = NULL;
 }
 
-extern uint32_t bullet_time_out;
-extern volatile uint8_t screen_state;
+//extern uint32_t bullet_time_out;
+//extern volatile uint8_t screen_state;
 void cmd_measure(BaseSequentialStream * chp, int argc, char *argv[])
 {
   (void) argc,argv;
 
-  chprintf(chp, "time: %d\r\n", bullet_time_out);
+  //chprintf(chp, "time: %d\r\n", bullet_time_out);
   /*chprintf(chp, "set-speed: %d\r\n", feeder_set_speed);
   chprintf(chp, "speed: %d\r\n", ___speed);
   chprintf(chp, "pos: %d\r\n", ___pos);

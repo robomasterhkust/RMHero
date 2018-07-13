@@ -129,7 +129,7 @@ uint8_t prev_s = 0;
 
 /*static */int bullet_time_out;
 
-extern systime_t bullet_out_time;
+//extern systime_t bullet_out_time;
 
 static THD_WORKING_AREA(preload_control_wa, 512);
 static THD_FUNCTION(preload_control, p){
@@ -154,7 +154,7 @@ static THD_FUNCTION(preload_control, p){
                 preload_canBoost();
                 chThdSleepMicroseconds(500);
             }
-            bullet_time_out = ST2MS(bullet_out_time - start_time);
+            //bullet_time_out = ST2MS(bullet_out_time - start_time);
             preload_encoder_update();
             preload_motor.pos_sp = preload_motor._pos;
             preload_pid.inte = 0.0f;
