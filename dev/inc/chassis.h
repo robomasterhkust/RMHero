@@ -91,6 +91,7 @@ typedef enum
   AUTO_FOLLOW_GIMBAL =6,
   DODGE_MOVE_MODE = 7,
   SAVE_LIFE = 8,
+  Hero_Screen=9,
 }chassis_mode_e;
 
 typedef struct{
