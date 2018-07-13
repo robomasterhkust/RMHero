@@ -497,7 +497,7 @@ void hero_gripper_Init(void){
     spin_sp[ARM_2]          = 90.0f * 19.2f / 360.0f * 8192.0f;
     spin_sp[ARM_3]          = 180.0f * 19.2f / 360.0f * 8192.0f;
 
-    hand_sp[HAND_OPEN]      =  6.0f * 360.0f * 36.0f / 360.0f * 8192.0f;
+    hand_sp[HAND_OPEN]      =  5.5f * 360.0f * 36.0f / 360.0f * 8192.0f;
     hand_sp[HAND_CLOSE]     =  4.0f * 360.0f * 36.0f / 360.0f * 8192.0f;
 
 

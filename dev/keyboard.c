@@ -161,7 +161,7 @@ void keyboard_chassis_process(chassisStruct* chassisP,Gimbal_Send_Dbus_canStruct
 #define CURRENT 1U
 void keyboard_hero_gripper_process(uint8_t * p_gripper_start, uint8_t * key_press, Gimbal_Send_Dbus_canStruct* pRC){
   key_press[PREV] = key_press[CURRENT];
-  if(bitmap[KEY_G])
+  if(bitmap[KEY_Z])
     key_press[CURRENT] = 1;
   else
     key_press[CURRENT] = 0;

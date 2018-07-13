@@ -35,6 +35,8 @@
 
 #include "hero_gripper.h"
 
+#include "HeroPWM.h"
+
 void shellStart(void);
 
 #endif

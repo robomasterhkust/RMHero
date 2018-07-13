@@ -90,7 +90,7 @@ int main(void) {
   shellStart(); 
   params_init();
   //*** 
-  // extiinit();
+   extiinit();
   //***
   can_processInit(); 
   //pwm_magazine_cover_init();
@@ -110,6 +110,7 @@ int main(void) {
  
   pIMU = imu_get(); //*
     hero_gripper_Init();
+  HeroPWM_init();
  
   chThdCreateStatic(Attitude_thread_wa, sizeof(Attitude_thread_wa), 
   NORMALPRIO + 5, 

@@ -14,8 +14,10 @@
 #include "canBusProcess.h"
 #include "can.h"
 
+#include "HeroPWM.h"
+
 //comment out the line below to disable motor testing
-#define MOTOR_TEST
+/*#define MOTOR_TEST*/
 
 /*
  * Turns on all chassis motor for 1 sec when MotorOn is TRUE
@@ -62,6 +64,23 @@ static THD_FUNCTION(MotorToggleThread, arg)
     }
 }
 #endif
+
+
+static void extcb2(EXTDriver *extp, expchannel_t channel)
+{
+
+    (void) extp;
+    (void) channel;
+
+    chSysLockFromISR();
+
+    bullet_in();
+    LEDG_TOGGLE();
+
+    chSysUnlockFromISR();
+
+
+}
 /*
  * EXTI 10 CALLBACK
  * Configured for motor testing
@@ -90,7 +109,7 @@ static const EXTConfig extcfg = {
         {
                 {EXT_CH_MODE_DISABLED, NULL},   //EXTI0
                 {EXT_CH_MODE_DISABLED, NULL},   //EXTI1
-                {EXT_CH_MODE_DISABLED, NULL},   //EXTI2
+                {EXT_CH_MODE_FALLING_EDGE | EXT_CH_MODE_AUTOSTART | EXT_MODE_GPIOI, extcb2},   //EXTI2
                 {EXT_CH_MODE_DISABLED, NULL},   //EXTI3
                 {EXT_CH_MODE_DISABLED, NULL},   //EXTI4
                 {EXT_CH_MODE_DISABLED, NULL},   //EXTI5
