@@ -108,7 +108,8 @@ int main(void) {
   // sdlog_init();
   //tft_init(TFT_HORIZONTAL, CYAN, YELLOW, BLACK); 
  
-  pIMU = imu_get(); //* 
+  pIMU = imu_get(); //*
+    hero_gripper_Init();
  
   chThdCreateStatic(Attitude_thread_wa, sizeof(Attitude_thread_wa), 
   NORMALPRIO + 5, 

@@ -33,6 +33,8 @@
 #include "sdlog.h"
 #include "barrelStatus.h"
 
+#include "hero_gripper.h"
+
 void shellStart(void);
 
 #endif

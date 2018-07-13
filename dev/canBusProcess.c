@@ -53,6 +53,10 @@ volatile BarrelStatus_canStruct* can_get_sent_barrelStatus(void){
     return &chassis_send_barrel;
 }
 
+volatile Can_send_bullet_mouse_struct* can_get_sent_bullet_mouse(void){
+    return &bullet_mouse;
+}
+
 
 static inline void  can_processSendBulletMouseEncoder
         (volatile Can_send_bullet_mouse_struct* db, const CANRxFrame* const rxmsg){
@@ -143,9 +147,6 @@ static void can_processEncoderMessage(CANDriver* const canp, const CANRxFrame* c
   {
     switch(rxmsg->SID)
     {
-        case CAN_CHASSIS_SEND_BARREL_ID:
-            can_processSendBarrelStatus(&chassis_send_barrel, rxmsg);
-            break;
         case CAN_CHASSIS_FL_FEEDBACK_MSG_ID:
             can_processChassisEncoder(&extra_encoder[FRONT_LEFT] ,rxmsg);
             break;
@@ -157,6 +158,18 @@ static void can_processEncoderMessage(CANDriver* const canp, const CANRxFrame* c
             break;
         case CAN_CHASSIS_BR_FEEDBACK_MSG_ID:
             can_processChassisEncoder(&extra_encoder[BACK_RIGHT] ,rxmsg);
+            break;
+        case 0x205:
+            chassis_encoder[0].msg_count++;
+            chassis_encoder[0].msg_count <= 50 ? can_getMotorOffset(&chassis_encoder[0],rxmsg) : can_processChassisEncoder(&chassis_encoder[0],rxmsg);
+            break;
+        case 0x206:
+            chassis_encoder[1].msg_count++;
+            chassis_encoder[1].msg_count <= 50 ? can_getMotorOffset(&chassis_encoder[1],rxmsg) : can_processChassisEncoder(&chassis_encoder[1],rxmsg);
+            break;
+        case 0x207:
+            chassis_encoder[2].msg_count++;
+            chassis_encoder[2].msg_count <= 50 ? can_getMotorOffset(&chassis_encoder[2],rxmsg) : can_processChassisEncoder(&chassis_encoder[2],rxmsg);
             break;
     }
   }

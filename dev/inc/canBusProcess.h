@@ -113,6 +113,7 @@ volatile ChassisEncoder_canStruct* can_getChassisMotor(void);
 volatile ChassisEncoder_canStruct* can_getExtraMotor(void);
 volatile Gimbal_Send_Dbus_canStruct* can_get_sent_dbus(void);
 volatile BarrelStatus_canStruct* can_get_sent_barrelStatus(void);
+volatile Can_send_bullet_mouse_struct* can_get_sent_bullet_mouse(void);
 
 void can_processInit(void);
 void can_motorSetCurrent(CANDriver *const CANx,
