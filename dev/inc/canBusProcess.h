@@ -25,6 +25,8 @@
 #define CAN_GIMBAL_SEND_DBUS_ID                     0x001
 #define CAN_CHASSIS_SEND_BARREL_ID                  0x002
 
+#define CAN_BULLET_SID                              0x123
+
 #define CAN_ENCODER_RANGE           8192            // 0x2000
 #define CAN_ENCODER_RADIAN_RATIO    7.669904e-4f    // 2*M_PI / 0x2000
 
@@ -99,6 +101,12 @@ typedef struct{
   int16_t _speed;
   int16_t speed_curve;
 } MotorDebug_canStruct;
+
+typedef struct{
+    uint8_t LEFT;
+    uint8_t RIGHT;
+    int16_t bullet;
+} Can_send_bullet_mouse_struct;
 
 volatile GimbalEncoder_canStruct* can_getGimbalMotor(void);
 volatile ChassisEncoder_canStruct* can_getChassisMotor(void);

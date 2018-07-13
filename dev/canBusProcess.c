@@ -15,6 +15,7 @@ static volatile ChassisEncoder_canStruct chassis_encoder[CHASSIS_MOTOR_NUM];
 static volatile ChassisEncoder_canStruct extra_encoder[EXTRA_MOTOR_NUM];
 static volatile Gimbal_Send_Dbus_canStruct gimbal_send_dbus;
 static volatile BarrelStatus_canStruct chassis_send_barrel;
+static volatile Can_send_bullet_mouse_struct bullet_mouse;
 /*
  * 500KBaud, automatic wakeup, automatic recover
  * from abort mode.
@@ -52,6 +53,15 @@ volatile BarrelStatus_canStruct* can_get_sent_barrelStatus(void){
     return &chassis_send_barrel;
 }
 
+
+static inline void  can_processSendBulletMouseEncoder
+        (volatile Can_send_bullet_mouse_struct* db, const CANRxFrame* const rxmsg){
+    chSysLock();
+    db->LEFT = rxmsg->data8[0];
+    db->RIGHT = rxmsg->data8[1];
+    db->bullet = rxmsg->data16[1];
+    chSysUnlock();
+}
 
 static inline void  can_processSendDbusEncoder
         (volatile Gimbal_Send_Dbus_canStruct* db, const CANRxFrame* const rxmsg){
@@ -163,6 +173,8 @@ static void can_processEncoderMessage(CANDriver* const canp, const CANRxFrame* c
         case CAN_GIMBAL_PITCH_FEEDBACK_MSG_ID:
             can_processGimbalEncoder(&gimbal_encoder[GIMBAL_PITCH] ,rxmsg);
             break;
+        case CAN_BULLET_SID:
+            can_processSendBulletMouseEncoder(&bullet_mouse, rxmsg);
 
     }
   }
