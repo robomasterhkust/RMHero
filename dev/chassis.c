@@ -272,7 +272,7 @@ static THD_FUNCTION(chassis_control, p) {
       keyboard_reset();
     }
 
-    if(bitmap_for_chassis[KEY_G]){
+    if(/*bitmap_for_chassis[KEY_G]*/0){
       if(!G_press){
         if(chassis.ctrl_mode != Hero_Screen){
           chassis.ctrl_mode = Hero_Screen;

@@ -328,6 +328,7 @@ static THD_FUNCTION(hero_rc_gripper_control, p)
                         break;
                     }
                     if(in_pos == 1 && ( ST2MS(chVTGetSystemTime() - step_start_time)  >  300) ){
+                        in_pos = 0;
                         running_state = middle_3_close;
                         step_start_time = chVTGetSystemTime();
                         break;
@@ -336,6 +337,7 @@ static THD_FUNCTION(hero_rc_gripper_control, p)
             case middle_3_close:
                 {
                     if(in_pos == 1 && ( ST2MS(chVTGetSystemTime() - step_start_time) >  300) ){
+                        in_pos = 0;
                         running_state = up_3_close1;
                         step_start_time = chVTGetSystemTime();
                         break;
@@ -344,6 +346,7 @@ static THD_FUNCTION(hero_rc_gripper_control, p)
             case up_3_close1:
                 {
                     if(in_pos == 1 && ( ST2MS(chVTGetSystemTime() - step_start_time) >  300) ){
+                        in_pos = 0;
                         running_state = up_1_close;
                         step_start_time = chVTGetSystemTime();
                         break;
@@ -352,6 +355,7 @@ static THD_FUNCTION(hero_rc_gripper_control, p)
             case up_1_close:
                 {
                     if(in_pos == 1 && ( ST2MS(chVTGetSystemTime() - step_start_time) >  300) ){
+                        in_pos = 0;
                         running_state = up_3_close2;
                         step_start_time = chVTGetSystemTime();
                         break;
@@ -360,6 +364,7 @@ static THD_FUNCTION(hero_rc_gripper_control, p)
             case up_3_close2:
                 {
                     if(in_pos == 1 && ( ST2MS(chVTGetSystemTime() - step_start_time) >  300) ){
+                        in_pos = 0;
                         running_state = up_3_open;
                         step_start_time = chVTGetSystemTime();
                         break;
@@ -368,6 +373,7 @@ static THD_FUNCTION(hero_rc_gripper_control, p)
             case up_3_open:
                 {
                     if(in_pos == 1 && ( ST2MS(chVTGetSystemTime() - step_start_time) >  300) ){
+                        in_pos = 0;
                         running_state = middle_2_open;
                         step_start_time = chVTGetSystemTime();
                         break;
