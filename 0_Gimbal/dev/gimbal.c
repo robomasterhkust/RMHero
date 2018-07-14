@@ -3,7 +3,6 @@
  * @file    gimbal.c
  * @brief   Gimbal controller, driver and interface
  */
-
 #include "ch.h"
 #include "hal.h"
 
@@ -13,6 +12,13 @@
 #include "canBusProcess.h"
 
 #include "dbus.h"
+
+#include "shoot.h"
+
+uint8_t screen_mode;
+uint8_t get_screen_mode(void){
+    return screen_mode;
+}
 
 #define GIMBAL_IQ_MAX 7000
 
@@ -263,8 +269,21 @@ static void gimbal_encoderUpdate(GimbalMotorStruct *motor, uint8_t id) {
     }
 }
 
-static inline void gimbal_Follow(void) {
+static void gimbal_Follow(void) {
     gimbal.yaw_atti_cmd = gimbal._pIMU->euler_angle[Yaw];
+    gimbal.prev_yaw_cmd = gimbal.yaw_atti_cmd - 2 * M_PI * gimbal.rev;
+
+    while(gimbal.prev_yaw_cmd > M_PI)
+    {
+        gimbal.prev_yaw_cmd -= 2*M_PI;
+        gimbal.rev++;
+    }
+    while(gimbal.prev_yaw_cmd < -M_PI)
+    {
+        gimbal.prev_yaw_cmd += 2*M_PI;
+        gimbal.rev--;
+    }
+
     gimbal.pitch_atti_cmd = gimbal._pIMU->euler_angle[Pitch];
 }
 
@@ -319,7 +338,28 @@ static inline float gimbal_controlAttitude(pid_controller_t *const atti,
     return output;
 }
 
-/*static */volatile uint8_t screen_state;
+
+
+
+
+#define PREV 0U
+#define CURRENT 1U
+uint8_t key_press[2] = {0,0};
+int bitmap[15] = {};
+void keyboard_to_bitmap(RC_Ctl_t* pRC){
+    uint8_t i = 0;
+    //uint32_t n = RC_get()->keyboard.key_code;
+    uint32_t n = pRC->keyboard.key_code;
+    int j;
+    for(j=0 ; j< 15; j++){
+        bitmap[i] = n % 2;
+        n = n/2;
+        i++;
+    }
+}
+
+
+systime_t screen_start_time;
 #define GIMBAL_SCREEN_MAX_ERROR         0.0874532922222f
 #define GIMBAL_SCREEN_SCORE_FULL        100U
 #define GIMBAL_SCREEN_CONTROL_PERIOD_ST     US2ST(1000000U/GIMBAL_SCREEN_CONTROL_FREQ)
@@ -333,7 +373,6 @@ static THD_FUNCTION(gimbal_screenthread, p) {
     float _error[2];
     uint8_t i;
 
-    screen_state = 0;
 
     _pitch_pos.error_int_max = 1500.0f;
     _yaw_pos.error_int_max = 1000.0f;
@@ -352,8 +391,18 @@ static THD_FUNCTION(gimbal_screenthread, p) {
             //gimbal.errorFlag |= GIMBAL_CONTROL_LOSE_FRAME;
         }
 
-        if (rc->rc.s2 == 1) {
 
+
+        keyboard_to_bitmap(rc);
+        if(bitmap[11])
+            key_press[CURRENT] = 1;
+        else
+            key_press[CURRENT] = 0;
+        if( ST2MS(chVTGetSystemTimeX() - screen_start_time) < 1000 )
+            key_press[CURRENT] = 0;
+        if(key_press[PREV] == 0 && key_press[CURRENT] == 1){
+
+            key_press[CURRENT] = 0;
 
             uint8_t back_in_pos = 0;
 
@@ -369,17 +418,9 @@ static THD_FUNCTION(gimbal_screenthread, p) {
                 gimbal_encoderUpdate(&gimbal.motor[GIMBAL_YAW], GIMBAL_YAW);
                 gimbal_encoderUpdate(&gimbal.motor[GIMBAL_PITCH], GIMBAL_PITCH);
 
-                if (screen_state == 2 /*|| ( ST2MS( chVTGetSystemTimeX() - state_one_in_pos ) <= 500 )*/ ) {
-                    _error[GIMBAL_YAW] = yaw_init_pos + (M_PI / 2.1f) - gimbal.motor[GIMBAL_YAW]._angle;
-                    _error[GIMBAL_PITCH] = pitch_init_pos + (M_PI / 6.0f) - gimbal.motor[GIMBAL_PITCH]._angle;
-                } else if (screen_state == 1 /*&&  ( ST2MS( chVTGetSystemTimeX() - state_one_in_pos ) > 500 )*/ ) {
-                    _error[GIMBAL_YAW] = yaw_init_pos - gimbal.motor[GIMBAL_YAW]._angle;
-                    _error[GIMBAL_PITCH] = pitch_init_pos + (M_PI / 6.0f) - gimbal.motor[GIMBAL_PITCH]._angle;
-                } else if (screen_state == 0) {
+                _error[GIMBAL_YAW] = yaw_init_pos - gimbal.motor[GIMBAL_YAW]._angle;
+                _error[GIMBAL_PITCH] = pitch_init_pos - gimbal.motor[GIMBAL_PITCH]._angle;
 
-                    _error[GIMBAL_YAW] = yaw_init_pos - gimbal.motor[GIMBAL_YAW]._angle;
-                    _error[GIMBAL_PITCH] = pitch_init_pos - gimbal.motor[GIMBAL_PITCH]._angle;
-                }
 
                 gimbal.yaw_iq_cmd = gimbal_controlPos(&_yaw_pos, _error[GIMBAL_YAW],
                                                       gimbal.motor[GIMBAL_YAW]._speed_enc);
@@ -407,27 +448,16 @@ static THD_FUNCTION(gimbal_screenthread, p) {
                 }
                 if (_screen_score[0] > GIMBAL_SCREEN_SCORE_FULL &&
                     _screen_score[1] > GIMBAL_SCREEN_SCORE_FULL) {
-                    if (screen_state == 2) {
-                        _screen_score[0] = 0;
-                        _screen_score[1] = 0;
-                        screen_state--;
-                        state_one_in_pos = chVTGetSystemTimeX();
-                    } else if (screen_state == 1 /*&& ( ST2MS( chVTGetSystemTimeX() - state_one_in_pos ) <= 500 )*/ ) {
-                        _screen_score[0] = 0;
-                        _screen_score[1] = 0;
-                        screen_state--;
-
-                    } else {
                         back_in_pos = 1;
-                    }
                 }
 
             }
 
             chSysLock();
-            screen_state = 0;
             _screen_score[0] = 0;
             _screen_score[1] = 0;
+
+            screen_mode = 0;
 
             gimbal_Follow();
             chThdResumeS(&gimbal_thread_handler, MSG_OK);
@@ -435,23 +465,16 @@ static THD_FUNCTION(gimbal_screenthread, p) {
             chThdSuspendS(&gimbal_screen_handler);
 
             chSysUnlock();
+            continue;
         }
 
         gimbal_encoderUpdate(&gimbal.motor[GIMBAL_YAW], GIMBAL_YAW);
         gimbal_encoderUpdate(&gimbal.motor[GIMBAL_PITCH], GIMBAL_PITCH);
 
 
-        if (screen_state == 0) {
-            _error[GIMBAL_YAW] = yaw_init_pos - gimbal.motor[GIMBAL_YAW]._angle;
-            _error[GIMBAL_PITCH] = pitch_init_pos + (M_PI / 6.0f) - gimbal.motor[GIMBAL_PITCH]._angle;
-        } else if (screen_state ==
-                   1 /*|| (screen_state == 2 && ST2MS(chVTGetSystemTimeX() - state_one_in_pos) <= 500)*/ ) {
-            _error[GIMBAL_YAW] = yaw_init_pos + (M_PI / 2.1f) - gimbal.motor[GIMBAL_YAW]._angle;
-            _error[GIMBAL_PITCH] = pitch_init_pos + (M_PI / 6.0f) - gimbal.motor[GIMBAL_PITCH]._angle;
-        } else if (screen_state == 2 /*&& ST2MS(chVTGetSystemTimeX() - state_one_in_pos) > 500*/) {
-            _error[GIMBAL_YAW] = yaw_init_pos + (M_PI / 2.1f) - gimbal.motor[GIMBAL_YAW]._angle;
-            _error[GIMBAL_PITCH] = pitch_init_pos - gimbal.motor[GIMBAL_PITCH]._angle;
-        }
+        _error[GIMBAL_YAW] = yaw_init_pos - (M_PI / 2.1f) - gimbal.motor[GIMBAL_YAW]._angle;
+        _error[GIMBAL_PITCH] = pitch_init_pos + (M_PI / 6.0f) - gimbal.motor[GIMBAL_PITCH]._angle;
+
 
         gimbal.yaw_iq_cmd = gimbal_controlPos(&_yaw_pos, _error[GIMBAL_YAW],
                                               gimbal.motor[GIMBAL_YAW]._speed_enc);
@@ -468,29 +491,6 @@ static THD_FUNCTION(gimbal_screenthread, p) {
 #endif
 
         gimbal_canUpdate();
-
-        for (i = 0; i < 2; i++) {
-            if (_error[i] < GIMBAL_SCREEN_MAX_ERROR && _error[i] > -GIMBAL_SCREEN_MAX_ERROR)
-                _screen_score[i]++;
-            else if (_screen_score[i] > 100U)
-                _screen_score[i] -= 50;
-            else
-                _screen_score[i] = 0;
-        }
-        if (_screen_score[0] > GIMBAL_SCREEN_SCORE_FULL &&
-            _screen_score[1] > GIMBAL_SCREEN_SCORE_FULL) {
-            if (screen_state == 0) {
-                _screen_score[0] = 0;
-                _screen_score[1] = 0;
-                screen_state++;
-            } else if (screen_state == 1) {
-                _screen_score[0] = 0;
-                _screen_score[1] = 0;
-                screen_state++;
-                //state_one_in_pos =  chVTGetSystemTimeX();
-            }
-
-        }
     }
 
 }
@@ -534,15 +534,28 @@ static THD_FUNCTION(gimbal_thread, p) {
 
 
 
-/*    if(rc->rc.s2 == 2){
 
-        chSysLock();
-        chThdResumeS(&gimbal_screen_handler, MSG_OK);
-        gimbal_screen_handler = NULL;
-        chThdSuspendS(&gimbal_thread_handler);
-        chSysUnlock();
-        continue;
-    }*/
+        keyboard_to_bitmap(rc);
+        if(bitmap[11] )
+            key_press[CURRENT] = 1;
+        else
+            key_press[CURRENT] = 0;
+        if(key_press[PREV] == 0 && key_press[CURRENT] == 1){
+            screen_mode = 1;
+            while(get_shooter_speed() != 5000){
+                chThdSleepMilliseconds(2);
+            }
+            chThdSleepMilliseconds(300);
+
+            chSysLock();
+            key_press[CURRENT] = 0;
+            screen_start_time = chVTGetSystemTimeX();
+            chThdResumeS(&gimbal_screen_handler, MSG_OK);
+            gimbal_screen_handler = NULL;
+            chThdSuspendS(&gimbal_thread_handler);
+            chSysUnlock();
+            continue;
+        }
 
 
 
@@ -737,8 +750,6 @@ static THD_FUNCTION(gimbal_init_thread, p) {
             /*exit this thread and start attitude control*/
             chSysLock();
 
-            LEDG_TOGGLE();
-
             yaw_init_pos = gimbal.motor[GIMBAL_YAW]._angle;
             pitch_init_pos = gimbal.motor[GIMBAL_PITCH]._angle;
 
@@ -780,6 +791,8 @@ const char subname_accl[] = "YawX YawY YawZ PitchX PitchY PitchZ";
  *  @api
  */
 void gimbal_init(void) {
+
+    screen_mode = 0;
     memset(&gimbal, 0, sizeof(GimbalStruct));
 
     memset(&_yaw_pos, 0, sizeof(pid_controller_t));
@@ -823,10 +836,6 @@ void gimbal_init(void) {
 
     params_set(&_yaw_atti, 7, 3, _yaw_atti_name, subname_PID, PARAM_PUBLIC);
     params_set(&_pitch_atti, 8, 3, _pitch_atti_name, subname_PID, PARAM_PUBLIC);
-
-#ifdef GIMBAL_USE_MAVLINK_CMD
-    mavlink_attitude = mavlinkComm_attitude_subscribe();
-#endif
 
     chThdCreateStatic(gimbal_init_thread_wa, sizeof(gimbal_init_thread_wa),
                       NORMALPRIO - 5, gimbal_init_thread, NULL);

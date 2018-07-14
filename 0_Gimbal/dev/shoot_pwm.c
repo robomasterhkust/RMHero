@@ -4,12 +4,19 @@
 
 #include "shoot.h"
 #include "dbus.h"
+#include "gimbal.h"
 
 
 static RC_Ctl_t* rc;
 
 extern PWMDriver PWMD9;
 extern PWMDriver PWMD4;
+
+int shooter_set_speed;
+
+int get_shooter_speed(void){
+    return shooter_set_speed;
+}
 
 static const PWMConfig pwm9cfg = {
         500000,
@@ -48,12 +55,11 @@ static THD_FUNCTION(pwm_thd, arg) {
     chThdSleepMilliseconds(50);
 
     while(1){
-        if(rc->rc.s2 == 1){
-            pwmEnableChannel(&PWMD9, 0, PWM_PERCENTAGE_TO_WIDTH(&PWMD9, 8500));
-            //pwmEnableChannel(&PWMD9, 1, PWM_PERCENTAGE_TO_WIDTH(&PWMD9, 8500));
+        if(get_screen_mode() == 1){
+            pwmEnableChannel(&PWMD9, 0, PWM_PERCENTAGE_TO_WIDTH(&PWMD9, 5000));
         }
         else{
-            pwmEnableChannel(&PWMD9, 0, PWM_PERCENTAGE_TO_WIDTH(&PWMD9, 5000));
+            pwmEnableChannel(&PWMD9, 0, PWM_PERCENTAGE_TO_WIDTH(&PWMD9, 8500));
         }
 
         chThdSleepMilliseconds(200);

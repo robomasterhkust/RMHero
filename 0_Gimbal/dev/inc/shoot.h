@@ -3,5 +3,6 @@
 
 
 void shooter_init(void);
+int get_shooter_speed(void);
 
 #endif

@@ -18,6 +18,8 @@
 #define CAN_CHASSIS_SEND_BARREL_ID                  0x002
 #define CAN_NVIDIA_TX2_BOARD_ID                     0x103
 
+#define CAN_BULLET_SID                              0x123
+
 #define CAN_ENCODER_RANGE           8192            // 0x2000
 
 typedef enum

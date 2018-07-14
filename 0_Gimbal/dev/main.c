@@ -123,7 +123,7 @@ int main(void) {
     while (init_state != INIT_ATTITUDE_COMPLETE)
       chThdSleepMilliseconds(100);//Wait for ADIS16470 Initialization
 
-    //feederInit();
+    feederInit();
     preloadInit();
     shooter_init();
     gimbal_init();

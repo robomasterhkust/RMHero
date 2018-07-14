@@ -150,7 +150,7 @@ static THD_FUNCTION(preload_control, p){
             preload_state = PreLoadBoost;
             PreLoad_Bullet_Out = 0;
             preload_canBoost();
-            while( PreLoad_Bullet_Out == 0 && ST2MS(chVTGetSystemTimeX() - start_time) < 2000 ){
+            while( PreLoad_Bullet_Out == 0 && ST2MS(chVTGetSystemTimeX() - start_time) < 1000 ){
                 preload_canBoost();
                 chThdSleepMicroseconds(500);
             }
