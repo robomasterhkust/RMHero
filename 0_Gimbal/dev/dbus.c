@@ -8,6 +8,7 @@
 #include "hal.h"
 
 #include "dbus.h"
+#include "gimbal.h"
 //#include "chprintf.h"
 //static BaseSequentialStream* chp = (BaseSequentialStream*)SERIAL_CMD;
 
@@ -163,7 +164,11 @@ static inline void RC_txCan(CANDriver *const CANx, const uint16_t SID)
   txmsg.DLC = 0x08;
 
   chSysLock();
+
   txCan.channel0 = RC_Ctl.rc.channel0;
+    if(get_screen_quit() == 1){
+        txCan.channel0 = -1;
+    }
   txCan.channel1 = RC_Ctl.rc.channel1;
   txCan.s1 = RC_Ctl.rc.s1;
   txCan.s2 = RC_Ctl.rc.s2;

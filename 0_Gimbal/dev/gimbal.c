@@ -3,6 +3,7 @@
  * @file    gimbal.c
  * @brief   Gimbal controller, driver and interface
  */
+
 #include "ch.h"
 #include "hal.h"
 
@@ -18,6 +19,10 @@
 uint8_t screen_mode;
 uint8_t get_screen_mode(void){
     return screen_mode;
+}
+uint8_t screen_quit;
+uint8_t get_screen_quit(void){
+    return screen_quit;
 }
 
 #define GIMBAL_IQ_MAX 7000
@@ -394,15 +399,19 @@ static THD_FUNCTION(gimbal_screenthread, p) {
 
 
         keyboard_to_bitmap(rc);
-        if(bitmap[11])
+        key_press[PREV] = key_press[CURRENT];
+        if(bitmap[10])
             key_press[CURRENT] = 1;
         else
             key_press[CURRENT] = 0;
-        if( ST2MS(chVTGetSystemTimeX() - screen_start_time) < 1000 )
+        if( ST2MS(chVTGetSystemTimeX() - screen_start_time) < 2000 )
             key_press[CURRENT] = 0;
         if(key_press[PREV] == 0 && key_press[CURRENT] == 1){
 
+
+
             key_press[CURRENT] = 0;
+            screen_quit = 1;
 
             uint8_t back_in_pos = 0;
 
@@ -534,28 +543,36 @@ static THD_FUNCTION(gimbal_thread, p) {
 
 
 
-
+        //chSysLock();
         keyboard_to_bitmap(rc);
-        if(bitmap[11] )
+        //chSysUnlock();
+        key_press[PREV] = key_press[CURRENT];
+        if(bitmap[10] )
             key_press[CURRENT] = 1;
         else
             key_press[CURRENT] = 0;
-        if(key_press[PREV] == 0 && key_press[CURRENT] == 1){
-            screen_mode = 1;
-            while(get_shooter_speed() != 5000){
-                chThdSleepMilliseconds(2);
-            }
-            chThdSleepMilliseconds(300);
 
-            chSysLock();
-            key_press[CURRENT] = 0;
-            screen_start_time = chVTGetSystemTimeX();
-            chThdResumeS(&gimbal_screen_handler, MSG_OK);
-            gimbal_screen_handler = NULL;
-            chThdSuspendS(&gimbal_thread_handler);
-            chSysUnlock();
-            continue;
+        if(/*key_press[PREV] == 0 && */key_press[CURRENT] == 1 ){
+            screen_mode = 1;
         }
+        else {
+            screen_mode = 0;
+        }
+
+        if(screen_mode == 1){
+            if(get_shooter_speed() == 1 || can_getHeatValue()->chassis_mode == 1){
+                chSysLock();
+                key_press[CURRENT] = 0;
+                screen_start_time = chVTGetSystemTimeX();
+                chThdResumeS(&gimbal_screen_handler, MSG_OK);
+                gimbal_screen_handler = NULL;
+                chThdSuspendS(&gimbal_thread_handler);
+                chSysUnlock();
+                continue;
+            }
+        }
+
+        screen_quit = 0;
 
 
 
@@ -699,6 +716,8 @@ static THD_FUNCTION(gimbal_init_thread, p) {
 
     uint16_t _init_score[2] = {0, 0};
 
+    //RC_canTxCmd(ENABLE);
+
     systime_t tick = chVTGetSystemTimeX() + MS2ST(500);
     while (true) {
         gimbal_encoderUpdate(&gimbal.motor[GIMBAL_YAW], GIMBAL_YAW);
@@ -792,6 +811,7 @@ const char subname_accl[] = "YawX YawY YawZ PitchX PitchY PitchZ";
  */
 void gimbal_init(void) {
 
+    screen_quit = 0;
     screen_mode = 0;
     memset(&gimbal, 0, sizeof(GimbalStruct));
 

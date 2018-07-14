@@ -7,6 +7,7 @@
 #include "shell.h"
 #include <string.h>
 #include <inc/gimbal.h>
+#include <inc/canBusProcess.h>
 
 #define SERIAL_CMD       &SDU1
 #define SERIAL_DATA      &SDU1
@@ -254,8 +255,12 @@ void cmd_calibrate(BaseSequentialStream * chp, int argc, char *argv[])
 void cmd_measure(BaseSequentialStream * chp, int argc, char *argv[])
 {
   (void) argc,argv;
+  volatile BarrelStatus_canStruct *p_heat = can_getHeatValue();
 
-  //chprintf(chp, "time: %d\r\n", bullet_time_out);
+  chprintf(chp, "mode: %d\r\n", p_heat->chassis_mode);
+  chprintf(chp, "heat: %d\r\n", p_heat->currentHeatValue);
+  chprintf(chp, "limit: %d\r\n", p_heat->heatLimit);
+
   /*chprintf(chp, "set-speed: %d\r\n", feeder_set_speed);
   chprintf(chp, "speed: %d\r\n", ___speed);
   chprintf(chp, "pos: %d\r\n", ___pos);

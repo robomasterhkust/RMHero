@@ -13,9 +13,15 @@ extern PWMDriver PWMD9;
 extern PWMDriver PWMD4;
 
 int shooter_set_speed;
+int last_set_speed;
+int shoot_off;
+systime_t shoot_off_tick;
 
 int get_shooter_speed(void){
-    return shooter_set_speed;
+    if( ST2MS(chVTGetSystemTimeX() - shoot_off_tick) > 300 && shooter_set_speed != 5000){
+        return 1;
+    }
+    return 0;
 }
 
 static const PWMConfig pwm9cfg = {
@@ -55,13 +61,17 @@ static THD_FUNCTION(pwm_thd, arg) {
     chThdSleepMilliseconds(50);
 
     while(1){
+        last_set_speed = shooter_set_speed;
         if(get_screen_mode() == 1){
-            pwmEnableChannel(&PWMD9, 0, PWM_PERCENTAGE_TO_WIDTH(&PWMD9, 5000));
+            shooter_set_speed = 5000;
         }
         else{
-            pwmEnableChannel(&PWMD9, 0, PWM_PERCENTAGE_TO_WIDTH(&PWMD9, 8500));
+            shooter_set_speed = 6000;
         }
-
+        if(last_set_speed = 5000 && shooter_set_speed != 5000){
+            shoot_off_tick = chVTGetSystemTimeX();
+        }
+        pwmEnableChannel(&PWMD9, 0, PWM_PERCENTAGE_TO_WIDTH(&PWMD9, shooter_set_speed));
         chThdSleepMilliseconds(200);
     }
 }
@@ -69,7 +79,8 @@ static THD_FUNCTION(pwm_thd, arg) {
 void shooter_init(void)
 {
 
-
+    shoot_off_tick = chVTGetSystemTimeX();
+    last_set_speed = shooter_set_speed = shoot_off = 0;
     rc = RC_get();
 
     pwmStart(&PWMD9,&pwm9cfg);

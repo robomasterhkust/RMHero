@@ -69,6 +69,7 @@ typedef struct{
 typedef struct{
     uint16_t heatLimit;
     uint16_t currentHeatValue;
+    uint8_t  chassis_mode;
 } BarrelStatus_canStruct;
 
 typedef struct {

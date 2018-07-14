@@ -123,4 +123,5 @@ static inline float gimbal_controlPos(pid_controller_t* const controller,
                                       const float _error, const float _d_error);
 
 uint8_t get_screen_mode(void);
+uint8_t get_screen_quit(void);
 #endif
