@@ -4,6 +4,7 @@
  * @brief   CAN driver configuration file
  * @reference   RM2017_Archive
  */
+#include <canBusProcess.h>
 #include "ch.h"
 #include "hal.h"
 
@@ -65,6 +66,7 @@ static inline void  can_processSendBulletMouseEncoder
     db->bullet = rxmsg->data16[1];
     chSysUnlock();
 }
+
 
 static inline void  can_processSendDbusEncoder
         (volatile Gimbal_Send_Dbus_canStruct* db, const CANRxFrame* const rxmsg){
@@ -147,17 +149,21 @@ static void can_processEncoderMessage(CANDriver* const canp, const CANRxFrame* c
     switch(rxmsg->SID)
     {
         case CAN_CHASSIS_FL_FEEDBACK_MSG_ID:
-            can_processChassisEncoder(&extra_encoder[FRONT_LEFT] ,rxmsg);
+            chassis_encoder[FRONT_LEFT].msg_count++;
+            chassis_encoder[FRONT_LEFT].msg_count <= 50 ? can_getMotorOffset(&chassis_encoder[FRONT_LEFT],rxmsg) : can_processChassisEncoder(&chassis_encoder[FRONT_LEFT],rxmsg);
             break;
         case CAN_CHASSIS_FR_FEEDBACK_MSG_ID:
-            can_processChassisEncoder(&extra_encoder[FRONT_RIGHT] ,rxmsg);
+            chassis_encoder[FRONT_RIGHT].msg_count++;
+            chassis_encoder[FRONT_RIGHT].msg_count <= 50 ? can_getMotorOffset(&chassis_encoder[FRONT_RIGHT],rxmsg) : can_processChassisEncoder(&chassis_encoder[FRONT_RIGHT],rxmsg);
             break;
         case CAN_CHASSIS_BL_FEEDBACK_MSG_ID:
-            can_processChassisEncoder(&extra_encoder[BACK_LEFT] ,rxmsg);
+            chassis_encoder[BACK_LEFT].msg_count++;
+            chassis_encoder[BACK_LEFT].msg_count <= 50 ? can_getMotorOffset(&chassis_encoder[BACK_LEFT],rxmsg) : can_processChassisEncoder(&chassis_encoder[BACK_LEFT],rxmsg);
             break;
         case CAN_CHASSIS_BR_FEEDBACK_MSG_ID:
-            can_processChassisEncoder(&extra_encoder[BACK_RIGHT] ,rxmsg);
-            break;
+            chassis_encoder[BACK_RIGHT].msg_count++;
+            chassis_encoder[BACK_RIGHT].msg_count <= 50 ? can_getMotorOffset(&chassis_encoder[BACK_RIGHT],rxmsg) : can_processChassisEncoder(&chassis_encoder[BACK_RIGHT],rxmsg);
+          break;
         case 0x205:
             chassis_encoder[0].msg_count++;
             chassis_encoder[0].msg_count <= 50 ? can_getMotorOffset(&chassis_encoder[0],rxmsg) : can_processChassisEncoder(&chassis_encoder[0],rxmsg);
@@ -187,7 +193,6 @@ static void can_processEncoderMessage(CANDriver* const canp, const CANRxFrame* c
             break;
         case CAN_BULLET_SID:
             can_processSendBulletMouseEncoder(&bullet_mouse, rxmsg);
-
     }
   }
 }

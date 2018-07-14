@@ -24,7 +24,6 @@
 
 #define CAN_GIMBAL_SEND_DBUS_ID                     0x001
 #define CAN_CHASSIS_SEND_BARREL_ID                  0x002
-
 #define CAN_BULLET_SID                              0x123
 
 #define CAN_ENCODER_RANGE           8192            // 0x2000
@@ -95,13 +94,13 @@ typedef struct{
 typedef struct{
   uint16_t heatLimit;
   uint16_t currentHeatValue;
-
 } BarrelStatus_canStruct;
 
 typedef struct{
   int16_t _speed;
   int16_t speed_curve;
 } MotorDebug_canStruct;
+
 
 typedef struct{
     uint8_t LEFT;
@@ -114,7 +113,6 @@ volatile ChassisEncoder_canStruct* can_getChassisMotor(void);
 volatile ChassisEncoder_canStruct* can_getExtraMotor(void);
 volatile Gimbal_Send_Dbus_canStruct* can_get_sent_dbus(void);
 volatile BarrelStatus_canStruct* can_get_sent_barrelStatus(void);
-volatile Can_send_bullet_mouse_struct* can_get_sent_bullet_mouse(void);
 
 void can_processInit(void);
 void can_motorSetCurrent(CANDriver *const CANx,

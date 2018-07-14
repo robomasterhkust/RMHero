@@ -7,7 +7,6 @@
 #include "ch.h"
 #include "hal.h"
 #include <canBusProcess.h>
-
 #include "adis16265.h"
 #include "canBusProcess.h"
 #include "chassis.h"
@@ -15,6 +14,7 @@
 #include "gimbal.h"
 #include "judge.h"
 #include "keyboard.h"
+#include "mpu6500.h"
 #include "magazine_cover_task.h"
 #include "math.h"
 #include "math_misc.h"
@@ -23,21 +23,19 @@ static volatile chassisStruct chassis;
 GimbalEncoder_canStruct *gimbal_p;
 RC_Ctl_t *Rc;
 judge_fb_t *JudgeP;
-int *bitmap_for_chassis;
+PIMUStruct IMU_Data;
 pi_controller_t motor_vel_controllers[CHASSIS_MOTOR_NUM];
 pid_controller_t chassis_heading_controller;
 pid_controller_t dancing_controller;
 pid_controller_t power_limit_controller;
 pid_controller_t acceleration_limit_controller;
 lpfilterStruct lp_speed[CHASSIS_MOTOR_NUM];
+int *bitmap_for_chassis;
 rc_ctrl_t rm;
 Gimbal_Send_Dbus_canStruct *pRC;
 float gimbal_initP = 0;
 float record = 0;
-
-
-static bool reboot = false;
-static bool G_press = false;
+bool reboot = false;
 
 #define TWIST_ANGLE 150
 #define TWIST_PERIOD 800
@@ -48,8 +46,8 @@ static bool G_press = false;
 #define accl_value 165.0 / (500) // 500 is the frequency and 1 means 1 second
 #define accl_y 3300 * 0.4 / (500)
 #define accl_x 3300 * 0.4 / (500) // slide
-#define deccl_y 3300 / (500)
-#define deccl_x 3300 / (500)
+#define deccl_y 3300*1.1/ (500)
+#define deccl_x 3300*1.1 / (500)
 chassis_error_t chassis_getError(void) { return chassis.errorFlag; }
 
 chassisStruct *chassis_get(void) { return &chassis; }
@@ -119,6 +117,28 @@ bool chassis_absolute_speed(float i){
   return false;
 }
 
+void Collision_detection(){
+  float Collision_extent = (IMU_Data->accelData[0]*IMU_Data->accelData[0] + IMU_Data->accelData[1]*IMU_Data->accelData[1])/sqrt(IMU_Data->accelData[0]*IMU_Data->accelData[0] + IMU_Data->accelData[1]*IMU_Data->accelData[1]);
+  if(Collision_extent > 10){
+    int i;
+    for(i =0; i<4;i++){
+      motor_vel_controllers[i].error_int = 0;
+    }
+    chassis.ctrl_mode = SAVE_LIFE;
+  }
+
+  if(JudgeP->powerInfo.power > 80 && !chassis_absolute_speed(1.2) && JudgeP->powerInfo.powerBuffer < 10){
+    chassis.ctrl_mode = SAVE_LIFE;
+          // chassis.power_limit = 0;
+    int i;
+    for (i = 0; i < 4; i++) {
+      motor_vel_controllers[i].error_int = 0;
+    }
+      power_limit_controller.error_int = 0;
+    }
+}
+
+
 /*
 #define H_MAX  200  // Heading PID_outputx
 static int16_t chassis_controlHeading(chassisStruct* chassis, pid_controller_t*
@@ -134,6 +154,7 @@ controller->error_int_max);
   return (int16_t)(boundOutput(output, H_MAX));
 }
 */
+
 
 float CHASSIS_RC_MAX_SPEED_X = 3300.0f;
 float CHASSIS_RC_MAX_SPEED_Y = 3300.0f;
@@ -158,7 +179,9 @@ static inline void motor_debug_can(CANDriver *const CANx) {
   CANTxFrame txmsg;
   MotorDebug_canStruct motor_debug[CHASSIS_MOTOR_NUM];
   uint8_t i;
-  for (i = 0; i < CHASSIS_MOTOR_NUM; i++) {
+  motor_debug[0]._speed = (int16_t)(chassis.drive_curve * 60.0f);
+  motor_debug[0].speed_curve = (int16_t)(chassis.drive_sp * 60.0f);
+  for (i = 1; i < CHASSIS_MOTOR_NUM; i++) {
     motor_debug[i]._speed = (int16_t)(chassis._motors[i]._speed * 60.0f);
     motor_debug[i].speed_curve = (int16_t)(chassis._motors[i].speed_curve * 60.0f);
   }
@@ -214,10 +237,11 @@ static THD_FUNCTION(chassis_control, p) {
   chassis.ctrl_mode = CHASSIS_STOP;
   while (!chThdShouldTerminateX()) {
 
-    if (pRC->channel0 > 1684 || pRC->channel0 < 0) {
+ // Handle reboot
+    if(pRC->channel0 > 1684 || pRC->channel0 < 0){
       chassis.ctrl_mode = CHASSIS_STOP;
       reboot = false;
-    } else {
+    }else{
       chassis.ctrl_mode = MANUAL_FOLLOW_GIMBAL;
       if (!reboot) {
         reboot = true;
@@ -246,24 +270,32 @@ static THD_FUNCTION(chassis_control, p) {
       chassis.ctrl_mode = SAVE_LIFE;
     }
 */
-    if(JudgeP->powerInfo.powerBuffer<=30){
-      chassis.power_limit = 2.5*JudgeP->powerInfo.powerBuffer;
-      if(chassis.power_limit <= 25 && JudgeP->powerInfo.power > 80 && !chassis_absolute_speed(1)){
-
-
-        chassis.ctrl_mode = SAVE_LIFE;
-        // chassis.power_limit = 0;
-        int i;
-        for (i = 0; i < 4; i++) {
-          motor_vel_controllers[i].error_int = 0;
-        }
-        power_limit_controller.error_int = 0;
-      }
-    } else {
+/*
+    if(JudgeP->powerInfo.powerBuffer > 30){
       chassis.power_limit = 80;
     }
+    else*/
 
-    if(keyboard_enable(pRC)) {
+    chassis.power_limit = 75;
+
+//    if(JudgeP->powerInfo.powerBuffer<=60 && JudgeP->powerInfo.powerBuffer >=5){
+//      chassis.power_limit = JudgeP->powerInfo.powerBuffer/1.5+40;
+//    }else {
+//      if(JudgeP->powerInfo.power > 80 && !chassis_absolute_speed(1)){
+//        chassis.ctrl_mode = SAVE_LIFE;
+//        // chassis.power_limit = 0;
+//        int i;
+//        for (i = 0; i < 4; i++) {
+//          motor_vel_controllers[i].error_int = 0;
+//        }
+//        power_limit_controller.error_int = 0;
+//      }
+//      chassis.power_limit = 40;
+//    }
+
+    Collision_detection();
+
+    if (keyboard_enable(pRC)){
       keyboard_chassis_process(&chassis, pRC);
       rm.vx = 0;
       rm.vy = 0;
@@ -271,25 +303,6 @@ static THD_FUNCTION(chassis_control, p) {
       rm_chassis_process();
       keyboard_reset();
     }
-
-    if(/*bitmap_for_chassis[KEY_G]*/0){
-      if(!G_press){
-        if(chassis.ctrl_mode != Hero_Screen){
-          chassis.ctrl_mode = Hero_Screen;
-        }
-        else{
-          chassis.ctrl_mode = MANUAL_FOLLOW_GIMBAL;
-        }
-      }
-      G_press = true;
-    }
-    else{
-      G_press = false;
-    }
-
-
-
-
     switch (chassis.ctrl_mode) {
     case DODGE_MODE: {
       chassis.strafe_sp = 0;
@@ -313,12 +326,9 @@ static THD_FUNCTION(chassis_control, p) {
     case MANUAL_FOLLOW_GIMBAL: {
       follow_gimbal_handle();
     } break;
-    case DODGE_MOVE_MODE: {
+    case DODGE_MOVE_MODE:{
       dodge_move_handle();
     } break;
-    case Hero_Screen:{
-      flip_control_handle();
-    }break;
     case SAVE_LIFE: {
       save_life();
     } break;
@@ -347,6 +357,7 @@ void chassis_init(void) {
   chassis.rotate_x_offset = GIMBAL_X_OFFSET;
   chassis.rotate_y_offset = GIMBAL_Y_OFFSET;
   bitmap_for_chassis = Bitmap_get();
+  IMU_Data = imu_get();
   uint8_t i;
   // *********************temporary section*********************
   {
@@ -375,9 +386,9 @@ void chassis_init(void) {
 
   acceleration_limit_controller.error_int = 0.0f;
   acceleration_limit_controller.error_int_max = accl_x;
-  acceleration_limit_controller.ki = 0.00005f;
-  acceleration_limit_controller.kp = 0.03f;
-  acceleration_limit_controller.kd = 0.018f;
+  acceleration_limit_controller.ki = 0.0001f;  //0.0001
+  acceleration_limit_controller.kp = 0.04f; //0.04
+  acceleration_limit_controller.kd = 0.02f; //0.018
 
   dancing_controller.error_int = 0.0f;
   dancing_controller.error_int_max = 200.0f;
@@ -414,7 +425,7 @@ void chassis_init(void) {
                     chassis_can_Thd, NULL);
 }
 
-void mecanum_cal() {
+void mecanum_cal(){
   static float rotate_ratio_fr;
   static float rotate_ratio_fl;
   static float rotate_ratio_br;
@@ -457,7 +468,7 @@ void mecanum_cal() {
   //    power_limit_handle();
   //  }
   //  else{
-  if (fabs(chassis.strafe_curve) < fabs(chassis.strafe_sp)) {
+  if (fabs(chassis.strafe_curve) <= fabs(chassis.strafe_sp)) {
     if (chassis.strafe_sp >= 0) {
       chassis.strafe_curve += acceleration_limit_control(
           &acceleration_limit_controller, JudgeP->powerInfo.power,
@@ -465,7 +476,7 @@ void mecanum_cal() {
       if (chassis.strafe_curve <= 0) {
         chassis.strafe_curve = 0;
       }
-    } else {
+    }else {
       chassis.strafe_curve -= acceleration_limit_control(
           &acceleration_limit_controller, JudgeP->powerInfo.power,
           chassis.power_limit);
@@ -478,7 +489,7 @@ void mecanum_cal() {
       chassis.strafe_curve = chassis.strafe_sp;
     }
 
-  } else if (fabs(chassis.strafe_curve) > fabs(chassis.strafe_sp)) {
+  } else if (fabs(chassis.strafe_curve) > fabs(chassis.strafe_sp)){
     // if(fabs(chassis.strafe_sp) < 0.003){ // check whether the user intended
     // to stop
     float previous_strafe_curve = chassis.strafe_curve;
@@ -502,16 +513,16 @@ void mecanum_cal() {
     chassis.strafe_curve = chassis.strafe_sp;
   }
 
-  if (fabs(chassis.drive_curve) < fabs(chassis.drive_sp)) {
+  if (fabs(chassis.drive_curve) <= fabs(chassis.drive_sp)) {
     if (chassis.drive_sp >= 0) {
       chassis.drive_curve += acceleration_limit_control(
-          &acceleration_limit_controller, JudgeP->powerInfo.power, 80);
+          &acceleration_limit_controller, JudgeP->powerInfo.power, chassis.power_limit);
       if (chassis.drive_curve <= 0) {
         chassis.drive_curve = 0;
       }
     } else {
       chassis.drive_curve -= acceleration_limit_control(
-          &acceleration_limit_controller, JudgeP->powerInfo.power, 80);
+          &acceleration_limit_controller, JudgeP->powerInfo.power, chassis.power_limit);
       if (chassis.drive_curve >= 0) {
         chassis.drive_curve = 0;
       }
@@ -621,17 +632,19 @@ void chassis_twist_handle() {
   int16_t twist_period = TWIST_PERIOD;
   int16_t twist_angle = TWIST_ANGLE;
   twist_count++;
+  if(bitmap_for_chassis[KEY_E]){
   chassis.position_ref =
       gimbal_initP +
       twist_angle * sin(2 * M_PI / twist_period * twist_count) * M_PI / 180;
+  }
+  else{
+    chassis.position_ref =
+        gimbal_initP -
+        twist_angle * sin(2 * M_PI / twist_period * twist_count) * M_PI / 180;
+  }
   chassis.rotate_sp = chassis_heading_control(
       &dancing_controller, gimbal_p[0].radian_angle, chassis.position_ref);
 }
-void flip_control_handle(){
-
-}
-
-
 void dodge_move_handle() {
   int16_t twist_period = TWIST_MOVE_PERIOD;
   int16_t twist_angle = TWIST_MOVE_ANGLE;
@@ -667,8 +680,8 @@ void follow_gimbal_handle() {
     chassis.drive_sp = (vy * cos(-angle) + (-1) * vx * sin(-angle));
     chassis.strafe_sp = vy * sin(-angle) + vx * cos(-angle);
   }
-  chassis.rotate_sp = chassis_heading_control(
-      &chassis_heading_controller, gimbal_p[0].radian_angle, gimbal_initP);
+  chassis.rotate_sp = boundOutput(chassis_heading_control(
+      &chassis_heading_controller, gimbal_p[0].radian_angle, gimbal_initP),120);
 }
 
 void chassis_stop_handle() {

@@ -14,11 +14,11 @@
 #include "string.h"
 #include "canBusProcess.h"
 
-#define HERO
+#define INFANTRY
 
 
-//#define MM17
-#define MM42
+#define MM17
+//#define 42MM
 
 #define BARREL_UPDATE_FREQ 50
 #define BARREL_UPDATE_PERIOD_US 1000000/BARREL_UPDATE_FREQ
