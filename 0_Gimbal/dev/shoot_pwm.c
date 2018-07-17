@@ -66,7 +66,7 @@ static THD_FUNCTION(pwm_thd, arg) {
             shooter_set_speed = 5000;
         }
         else{
-            shooter_set_speed = 6000;
+            shooter_set_speed = 8500;
         }
         if(last_set_speed = 5000 && shooter_set_speed != 5000){
             shoot_off_tick = chVTGetSystemTimeX();
