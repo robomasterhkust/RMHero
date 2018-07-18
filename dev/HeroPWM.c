@@ -41,6 +41,8 @@ static volatile Can_send_bullet_mouse_struct* p_bullet_out;
 
 static pBarrelStatus p_heat;
 
+static volatile ChassisEncoder_canStruct* p_can_motors;
+
 
 static int16_t feeder_controlSpeed
         (const feeder_motorPosStruct* const motor, feeder_pid_controller_t* const controller,
@@ -50,7 +52,6 @@ static int16_t feeder_controlSpeed
 
     controller->error_int += error * controller->ki;
     controller->error_int = boundOutput(controller->error_int, controller->error_int_max);
-
 
     float output =
             error*controller->kp + controller->error_int - motor->_speed * controller->kd;
@@ -143,6 +144,8 @@ static THD_FUNCTION(pwm_control_thd, arg) {
 
 }
 
+
+
 void HeroPWM_init(void)
 {
 
@@ -157,6 +160,7 @@ void HeroPWM_init(void)
 
     p_bullet_out = can_get_sent_bullet_mouse();
     p_heat = barrelStatus_get();
+    p_can_motors = can_getChassisMotor();
 
     pwmStart(&PWMD4,&pwm4cfg);
 
