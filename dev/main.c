@@ -99,9 +99,7 @@ int main(void) {
   // extiinit(); //*
 
   chassis_init();
-
   customData_init();
-
   hero_gripper_Init();
   HeroPWM_init();
 

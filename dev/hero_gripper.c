@@ -28,7 +28,7 @@ static volatile Gimbal_Send_Dbus_canStruct* p_rc;
 static volatile uint8_t gripper_start;
 
 static float offset[GRIPPER_MOTOR_NUM];
-
+static hero_gripper gripper;
 
 static lpfilterStruct lp_gripper[GRIPPER_MOTOR_NUM];
 
@@ -42,8 +42,10 @@ static gripper_pid_controller_t controllers[GRIPPER_MOTOR_NUM];
 static gripper_motorPosStruct   gripper_motors[GRIPPER_MOTOR_NUM];
 
 static const int16_t gripper_output_max[GRIPPER_MOTOR_NUM] = {8000, 16000, 5000};
-static const float GEAR_RATIO[GRIPPER_MOTOR_NUM] = {LIFT_GEAR_RATIO, ARM_GEAR_RATIO, HAND_GEAR_RATIO};
-static const float Error_tolerance[GRIPPER_MOTOR_NUM] = {10.f, 3.0f, 180.0f};
+static const float GEAR_RATIO[GRIPPER_MOTOR_NUM] = {36.0f, 19.0f, 19.0f};
+static const float Error_tolerance[GRIPPER_MOTOR_NUM] = {10.f, 10.0f, 180.0f};
+
+
 
 
 
@@ -124,6 +126,11 @@ static void hero_gripper_calibrate(void){
         chThdSleepMilliseconds(2);
     }
 
+/*    gripper_motors[GRIPPER_LIFT_MOTOR].pos_sp = offset[GRIPPER_LIFT_MOTOR] + 60.0f * 19.0f / 360.0f * 8192.0f;
+    gripper_motors[GRIPPER_ARM_MOTOR].pos_sp = offset[GRIPPER_ARM_MOTOR] + 60.0f * 19.0f / 360.0f * 8192.0f;
+    gripper_motors[GRIPPER_HAND_MOTOR].pos_sp = offset[GRIPPER_HAND_MOTOR];
+    offset__ = offset[GRIPPER_ARM_MOTOR];*/
+
     _state = GRIPPER_RUNNING;
     running_state = down_1_open;
 
@@ -134,10 +141,6 @@ static void hero_gripper_calibrate(void){
 
 static void hero_gripper_encoderUpdate(void)
 {
-
-    spin1 = spin_sp[0];
-    spin2 = spin_sp[1];
-    spin3 = spin_sp[2];
 
     uint8_t i;
     uint8_t in_pos_count = 0;
@@ -190,13 +193,19 @@ static int16_t gripper_controlPos
          const int16_t output_max)
 {
     float error = motor->pos_sp - motor->_pos;
+    float output;
 
     controller->error_int += error * controller->ki;
     controller->error_int = boundOutput(controller->error_int, controller->error_int_max);
 
-
-    float output =
+if(motor->_speed > -1000.0f && motor->_speed < 1000.0f){
+     output =
+            error*controller->kp + controller->error_int ;
+}
+else{
+     output =
             error*controller->kp + controller->error_int - motor->_speed * controller->kd;
+}
 
 
     output = output >  ((float)output_max)?  ((float)output_max):output;
@@ -205,13 +214,14 @@ static int16_t gripper_controlPos
     return (int16_t) output;
 }
 
+
+int16_t output_max[GRIPPER_MOTOR_NUM];
 #define GRIPPER_UPDATE_PERIOD_US  1000000/GRIPPER_CONTROL_FREQ
 static THD_WORKING_AREA(hero_gripper_control_wa, 512);
 static THD_FUNCTION(hero_gripper_control, p)
 {
     (void)p;
-    float output[GRIPPER_MOTOR_NUM];
-    int16_t output_max[GRIPPER_MOTOR_NUM];
+
     uint32_t tick = chVTGetSystemTimeX();
     while(true){
 
@@ -242,11 +252,12 @@ static THD_FUNCTION(hero_gripper_control, p)
                 output_max[GRIPPER_HAND_MOTOR] = gripper_output_max[GRIPPER_HAND_MOTOR];
             }
 
-            output[i] = gripper_controlPos(&gripper_motors[i], &controllers[i], output_max[i]);
+            gripper.output[i] = gripper_controlPos(&gripper_motors[i], &controllers[i], output_max[i]);
 
-            can_motorSetCurrent(HERO_GRIPPER_CAN, HERO_GRIPPER_EID,
-                    output[GRIPPER_LIFT_MOTOR]+500, output[GRIPPER_ARM_MOTOR], output[GRIPPER_HAND_MOTOR], 0);
-        }
+            }
+        can_motorSetCurrent(HERO_GRIPPER_CAN, HERO_GRIPPER_EID,
+                            gripper.output[GRIPPER_LIFT_MOTOR] , gripper.output[GRIPPER_ARM_MOTOR], gripper.output[GRIPPER_HAND_MOTOR], 0);
+
     }
 }
 
@@ -303,8 +314,7 @@ static THD_FUNCTION(hero_rc_gripper_control, p)
                 {
                     running_state = middle_2_open;
                     step_start_time = chVTGetSystemTime();
-                    break;
-                }
+                }break;
             case middle_2_open:
                 {
                     //if(in_pos == 1){
@@ -313,8 +323,8 @@ static THD_FUNCTION(hero_rc_gripper_control, p)
                             step_start_time = chVTGetSystemTime();
                         }
                     //}
-                    break;
-                }
+
+                }break;
             case middle_3_open:
                 {
                     if(in_pos == 0 && ( ST2MS(chVTGetSystemTime() - step_start_time)  > 1000 ) ){
@@ -328,7 +338,7 @@ static THD_FUNCTION(hero_rc_gripper_control, p)
                         step_start_time = chVTGetSystemTime();
                         break;
                     }
-                }
+                }break;
             case middle_3_close:
                 {
                     if(in_pos == 1 && ( ST2MS(chVTGetSystemTime() - step_start_time) >  300) ){
@@ -337,7 +347,7 @@ static THD_FUNCTION(hero_rc_gripper_control, p)
                         step_start_time = chVTGetSystemTime();
                         break;
                     }
-                }
+                }break;
             case up_3_close1:
                 {
                     if(in_pos == 1 && ( ST2MS(chVTGetSystemTime() - step_start_time) >  300) ){
@@ -346,7 +356,7 @@ static THD_FUNCTION(hero_rc_gripper_control, p)
                         step_start_time = chVTGetSystemTime();
                         break;
                     }
-                }
+                }break;
             case up_1_close:
                 {
                     if(in_pos == 1 && ( ST2MS(chVTGetSystemTime() - step_start_time) >  300) ){
@@ -355,7 +365,7 @@ static THD_FUNCTION(hero_rc_gripper_control, p)
                         step_start_time = chVTGetSystemTime();
                         break;
                     }
-                }
+                }break;
             case up_3_close2:
                 {
                     if(in_pos == 1 && ( ST2MS(chVTGetSystemTime() - step_start_time) >  300) ){
@@ -364,7 +374,7 @@ static THD_FUNCTION(hero_rc_gripper_control, p)
                         step_start_time = chVTGetSystemTime();
                         break;
                     }
-                }
+                }break;
             case up_3_open:
                 {
                     if(in_pos == 1 && ( ST2MS(chVTGetSystemTime() - step_start_time) >  300) ){
@@ -378,7 +388,7 @@ static THD_FUNCTION(hero_rc_gripper_control, p)
                         step_start_time = chVTGetSystemTime();
                         break;
                     }
-                }
+                }break;
         }
         //chSysUnlock();
 
@@ -389,57 +399,49 @@ static THD_FUNCTION(hero_rc_gripper_control, p)
                     gripper_motors[GRIPPER_LIFT_MOTOR].pos_sp = offset[GRIPPER_LIFT_MOTOR]  - lift_sp[LIFT_DOWN];
                     gripper_motors[GRIPPER_ARM_MOTOR].pos_sp  = offset[GRIPPER_ARM_MOTOR]   - spin_sp[ARM_1];
                     gripper_motors[GRIPPER_HAND_MOTOR].pos_sp = offset[GRIPPER_HAND_MOTOR]  - hand_sp[HAND_OPEN];
-                    break;
-                }
+                }break;
             case middle_2_open:
                 {
                     gripper_motors[GRIPPER_LIFT_MOTOR].pos_sp = offset[GRIPPER_LIFT_MOTOR]  - lift_sp[LIFT_MIDDLE];
                     gripper_motors[GRIPPER_ARM_MOTOR].pos_sp  = offset[GRIPPER_ARM_MOTOR]   - spin_sp[ARM_2];
                     gripper_motors[GRIPPER_HAND_MOTOR].pos_sp = offset[GRIPPER_HAND_MOTOR]  - hand_sp[HAND_OPEN];
-                    break;
-                }
+                }break;
             case middle_3_open:
                 {
                     gripper_motors[GRIPPER_LIFT_MOTOR].pos_sp = offset[GRIPPER_LIFT_MOTOR]  - lift_sp[LIFT_MIDDLE];
                     gripper_motors[GRIPPER_ARM_MOTOR].pos_sp  = offset[GRIPPER_ARM_MOTOR]   - spin_sp[ARM_3];
                     gripper_motors[GRIPPER_HAND_MOTOR].pos_sp = offset[GRIPPER_HAND_MOTOR]  - hand_sp[HAND_OPEN];
-                    break;
-                }
+                }break;
             case middle_3_close:
                 {
                     gripper_motors[GRIPPER_LIFT_MOTOR].pos_sp = offset[GRIPPER_LIFT_MOTOR]  - lift_sp[LIFT_MIDDLE];
                     gripper_motors[GRIPPER_ARM_MOTOR].pos_sp  = offset[GRIPPER_ARM_MOTOR]   - spin_sp[ARM_3];
                     gripper_motors[GRIPPER_HAND_MOTOR].pos_sp = offset[GRIPPER_HAND_MOTOR]  - hand_sp[HAND_CLOSE];
-                    break;
-                }
+                }break;
             case up_3_close1:
                 {
                     gripper_motors[GRIPPER_LIFT_MOTOR].pos_sp = offset[GRIPPER_LIFT_MOTOR]  - lift_sp[LIFT_UP];
                     gripper_motors[GRIPPER_ARM_MOTOR].pos_sp  = offset[GRIPPER_ARM_MOTOR]   - spin_sp[ARM_3];
                     gripper_motors[GRIPPER_HAND_MOTOR].pos_sp = offset[GRIPPER_HAND_MOTOR]  - hand_sp[HAND_CLOSE];
-                    break;
-                }
+                }break;
             case up_1_close:
                 {
                     gripper_motors[GRIPPER_LIFT_MOTOR].pos_sp = offset[GRIPPER_LIFT_MOTOR]  - lift_sp[LIFT_UP];
                     gripper_motors[GRIPPER_ARM_MOTOR].pos_sp  = offset[GRIPPER_ARM_MOTOR]   - spin_sp[ARM_1];
                     gripper_motors[GRIPPER_HAND_MOTOR].pos_sp = offset[GRIPPER_HAND_MOTOR]  - hand_sp[HAND_CLOSE];
-                    break;
-                }
+                }break;
             case up_3_close2:
                 {
                     gripper_motors[GRIPPER_LIFT_MOTOR].pos_sp = offset[GRIPPER_LIFT_MOTOR]  - lift_sp[LIFT_UP];
                     gripper_motors[GRIPPER_ARM_MOTOR].pos_sp  = offset[GRIPPER_ARM_MOTOR]   - spin_sp[ARM_3];
                     gripper_motors[GRIPPER_HAND_MOTOR].pos_sp = offset[GRIPPER_HAND_MOTOR]  - hand_sp[HAND_CLOSE];
-                    break;
-                }
+                }break;
             case up_3_open:
                 {
                     gripper_motors[GRIPPER_LIFT_MOTOR].pos_sp = offset[GRIPPER_LIFT_MOTOR]  - lift_sp[LIFT_UP];
                     gripper_motors[GRIPPER_ARM_MOTOR].pos_sp  = offset[GRIPPER_ARM_MOTOR]   - spin_sp[ARM_3];
                     gripper_motors[GRIPPER_HAND_MOTOR].pos_sp = offset[GRIPPER_HAND_MOTOR]  - hand_sp[HAND_OPEN];
-                    break;
-                }
+                }break;
         }
         chSysUnlock();
 
@@ -491,12 +493,12 @@ void hero_gripper_Init(void){
     controllers[GRIPPER_HAND_MOTOR].kd = 5.0f;
 
     lift_sp[LIFT_DOWN]      = -60.0f * 19.0f / 360.0f * 8192.0f;
-    lift_sp[LIFT_MIDDLE]    = -300.0f * 19.0f / 360.0f * 8192.0f;
-    lift_sp[LIFT_UP]        = -400.0f * 19.0f / 360.0f * 8192.0f;
+    lift_sp[LIFT_MIDDLE]    = -280.0f * 19.0f / 360.0f * 8192.0f;
+    lift_sp[LIFT_UP]        = -430.0f * 19.0f / 360.0f * 8192.0f;
 
     spin_sp[ARM_1]          = 10.0f * 19.2f / 360.0f * 8192.0f;
     spin_sp[ARM_2]          = 90.0f * 19.2f / 360.0f * 8192.0f;
-    spin_sp[ARM_3]          = 180.0f * 19.2f / 360.0f * 8192.0f;
+    spin_sp[ARM_3]          = 175.0f * 19.2f / 360.0f * 8192.0f;
 
     hand_sp[HAND_OPEN]      =  6.5f * 360.0f * 36.0f / 360.0f * 8192.0f;
     hand_sp[HAND_CLOSE]     =  4.0f * 360.0f * 36.0f / 360.0f * 8192.0f;
@@ -508,6 +510,6 @@ void hero_gripper_Init(void){
     chThdCreateStatic(hero_gripper_control_wa, sizeof(hero_gripper_control_wa),
                       NORMALPRIO, hero_gripper_control, NULL);
     chThdCreateStatic(hero_rc_gripper_control_wa, sizeof(hero_rc_gripper_control_wa),
-                      NORMALPRIO - 1, hero_rc_gripper_control, NULL);
+                      NORMALPRIO + 1, hero_rc_gripper_control, NULL);
 
 }

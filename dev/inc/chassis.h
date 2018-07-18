@@ -38,12 +38,12 @@ else if((val) >= (max))\
 #define PERIMETER  478
 
 /* wheel track distance(mm) */
-#define WHEELTRACK  425 //403
+#define WHEELTRACK  500 //403
 /* wheelbase distance(mm) */
-#define WHEELBASE  315 //385
+#define WHEELBASE  538 //385
 
 /* gimbal is relative to chassis center x axis offset(mm) */
-#define GIMBAL_X_OFFSET 87 //150
+#define GIMBAL_X_OFFSET 164 //150
 /* gimbal is relative to chassis center y axis offset(mm) */
 #define GIMBAL_Y_OFFSET 0
 
@@ -91,6 +91,7 @@ typedef enum
   AUTO_FOLLOW_GIMBAL =6,
   DODGE_MOVE_MODE = 7,
   SAVE_LIFE = 8,
+  Hero_Screen=9,
 }chassis_mode_e;
 
 typedef struct{

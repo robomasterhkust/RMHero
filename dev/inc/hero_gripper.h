@@ -59,7 +59,14 @@ typedef enum {
     up_1_close,                     // go to up_3_close2
     up_3_close2,                    // go to up_3_open
     up_3_open                       // go to middle_2_open
+
 } gripper_state;
+
+
+typedef struct{
+    float output[GRIPPER_MOTOR_NUM];
+}hero_gripper;
+
 
 typedef struct{
     float kp;

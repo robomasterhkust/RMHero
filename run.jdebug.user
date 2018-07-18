@@ -1,0 +1,8 @@
+OpenWindow="Disassembly", DockArea=FLOATING, x=1280, y=255, w=392, h=154, FilterBarShown=0, ExecCountersShown=0
+OpenWindow="Console", DockArea=FLOATING, x=890, y=491, w=392, h=569, FilterBarShown=0, 
+OpenWindow="Global Data", DockArea=FLOATING, x=801, y=84, w=392, h=986, FilterBarShown=1, 
+OpenWindow="Watched Data", DockArea=FLOATING, x=384, y=284, w=549, h=546, FilterBarShown=0, 
+OpenToolbar="File", Floating=0, x=1, y=0
+OpenToolbar="Debug", Floating=0, x=0, y=0
+TableHeader="Global Data", SortCol="Name", SortOrder="DESCENDING", VisibleCols=["Name";"Value";"Location";"Size";"Type";"Scope"], ColWidths=[210;170;84;48;235;210]
+TableHeader="Watched Data", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location";"Size";"Refresh";"Type";"Scope"], ColWidths=[168;115;95;48;67;320;59]

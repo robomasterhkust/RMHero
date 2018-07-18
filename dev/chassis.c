@@ -36,9 +36,9 @@ Gimbal_Send_Dbus_canStruct *pRC;
 float gimbal_initP = 0;
 float record = 0;
 bool reboot = false;
-
-#define TWIST_ANGLE 150
-#define TWIST_PERIOD 800
+static bool G_press = false;
+#define TWIST_ANGLE 120
+#define TWIST_PERIOD 1200
 
 #define TWIST_MOVE_ANGLE 90
 #define TWIST_MOVE_PERIOD 1000
@@ -47,7 +47,7 @@ bool reboot = false;
 #define accl_y 3300 * 0.4 / (500)
 #define accl_x 3300 * 0.4 / (500) // slide
 #define deccl_y 3300*1.1/ (500)
-#define deccl_x 3300*1.1 / (500)
+#define deccl_x 3300*1.1/ (500)
 chassis_error_t chassis_getError(void) { return chassis.errorFlag; }
 
 chassisStruct *chassis_get(void) { return &chassis; }
@@ -119,7 +119,7 @@ bool chassis_absolute_speed(float i){
 
 void Collision_detection(){
   float Collision_extent = (IMU_Data->accelData[0]*IMU_Data->accelData[0] + IMU_Data->accelData[1]*IMU_Data->accelData[1])/sqrt(IMU_Data->accelData[0]*IMU_Data->accelData[0] + IMU_Data->accelData[1]*IMU_Data->accelData[1]);
-  if(Collision_extent > 10){
+  if(Collision_extent > 15 && chassis.ctrl_mode != Hero_Screen){
     int i;
     for(i =0; i<4;i++){
       motor_vel_controllers[i].error_int = 0;
@@ -127,7 +127,7 @@ void Collision_detection(){
     chassis.ctrl_mode = SAVE_LIFE;
   }
 
-  if(JudgeP->powerInfo.power > 80 && !chassis_absolute_speed(1.2) && JudgeP->powerInfo.powerBuffer < 10){
+  if(JudgeP->powerInfo.power > 120 && !chassis_absolute_speed(1.2) && JudgeP->powerInfo.powerBuffer < 10 && chassis.ctrl_mode != Hero_Screen){
     chassis.ctrl_mode = SAVE_LIFE;
           // chassis.power_limit = 0;
     int i;
@@ -136,6 +136,12 @@ void Collision_detection(){
     }
       power_limit_controller.error_int = 0;
     }
+}
+
+void Hero_Screen_handle(){
+  chassis.drive_sp =  km.vy;
+  chassis.strafe_sp = km.vx;
+  chassis.rotate_sp = km.vw;
 }
 
 
@@ -223,6 +229,7 @@ static THD_FUNCTION(chassis_can_Thd, p) {
   }
 }
 
+uint8_t last_G_press;
 static THD_WORKING_AREA(chassis_control_wa, 2048);
 static THD_FUNCTION(chassis_control, p) {
   (void)p;
@@ -242,12 +249,14 @@ static THD_FUNCTION(chassis_control, p) {
       chassis.ctrl_mode = CHASSIS_STOP;
       reboot = false;
     }else{
-      chassis.ctrl_mode = MANUAL_FOLLOW_GIMBAL;
-      if (!reboot) {
-        reboot = true;
-        chassis.position_ref = gimbal_p[0].radian_angle;
-        gimbal_initP = gimbal_p[0].radian_angle;
+      if(chassis.ctrl_mode != Hero_Screen){
         chassis.ctrl_mode = MANUAL_FOLLOW_GIMBAL;
+        if (!reboot) {
+          reboot = true;
+          chassis.position_ref = gimbal_p[0].radian_angle;
+          gimbal_initP = gimbal_p[0].radian_angle;
+          chassis.ctrl_mode = MANUAL_FOLLOW_GIMBAL;
+        }
       }
     }
 
@@ -276,7 +285,7 @@ static THD_FUNCTION(chassis_control, p) {
     }
     else*/
 
-    chassis.power_limit = 75;
+    chassis.power_limit = 110;
 
 //    if(JudgeP->powerInfo.powerBuffer<=60 && JudgeP->powerInfo.powerBuffer >=5){
 //      chassis.power_limit = JudgeP->powerInfo.powerBuffer/1.5+40;
@@ -295,7 +304,37 @@ static THD_FUNCTION(chassis_control, p) {
 
     Collision_detection();
 
-    if (keyboard_enable(pRC)){
+
+last_G_press = G_press;
+    if(bitmap_for_chassis[KEY_G]){
+      G_press = true;
+    }
+    else{
+        G_press = false;
+    }
+    /*else{
+      if(G_press){
+        if(chassis.ctrl_mode == MANUAL_FOLLOW_GIMBAL){
+          chassis.ctrl_mode = Hero_Screen;
+        }
+        else if(chassis.ctrl_mode == Hero_Screen){
+          chassis.ctrl_mode = MANUAL_FOLLOW_GIMBAL;
+        }
+
+      }
+      G_press = false;
+    }*/
+    if(last_G_press == false && G_press == true){
+        if(chassis.ctrl_mode == MANUAL_FOLLOW_GIMBAL){
+            chassis.ctrl_mode = Hero_Screen;
+        }
+        else if(chassis.ctrl_mode == Hero_Screen){
+            chassis.ctrl_mode = MANUAL_FOLLOW_GIMBAL;
+        }
+    }
+
+
+    if(keyboard_enable(pRC)){
       keyboard_chassis_process(&chassis, pRC);
       rm.vx = 0;
       rm.vy = 0;
@@ -303,6 +342,7 @@ static THD_FUNCTION(chassis_control, p) {
       rm_chassis_process();
       keyboard_reset();
     }
+
     switch (chassis.ctrl_mode) {
     case DODGE_MODE: {
       chassis.strafe_sp = 0;
@@ -332,6 +372,10 @@ static THD_FUNCTION(chassis_control, p) {
     case SAVE_LIFE: {
       save_life();
     } break;
+    case Hero_Screen:{
+      Hero_Screen_handle();
+    }
+    break;
     default: { chassis_stop_handle(); } break;
     }
     mecanum_cal();
@@ -386,9 +430,9 @@ void chassis_init(void) {
 
   acceleration_limit_controller.error_int = 0.0f;
   acceleration_limit_controller.error_int_max = accl_x;
-  acceleration_limit_controller.ki = 0.0001f;  //0.0001
-  acceleration_limit_controller.kp = 0.04f; //0.04
-  acceleration_limit_controller.kd = 0.02f; //0.018
+  acceleration_limit_controller.ki = 0.00005f;  //0.0001
+  acceleration_limit_controller.kp = 0.02f; //0.04
+  acceleration_limit_controller.kd = 0.015f; //0.018
 
   dancing_controller.error_int = 0.0f;
   dancing_controller.error_int_max = 200.0f;
@@ -433,7 +477,7 @@ void mecanum_cal(){
   static float wheel_rpm_ratio;
   chSysLock(); // ensure that the calculation is done in batch
 
-  if (1) // rotation_center_gimbal
+  if (chassis.ctrl_mode != Hero_Screen) // rotation_center_gimbal
   {
     rotate_ratio_fr = ((WHEELBASE + WHEELTRACK) / 2.0f -
                        chassis.rotate_x_offset + chassis.rotate_y_offset) /
@@ -448,10 +492,18 @@ void mecanum_cal(){
                        chassis.rotate_x_offset + chassis.rotate_y_offset) /
                       RADIAN_COEF;
   } else {
-    rotate_ratio_fr = ((WHEELBASE + WHEELTRACK) / 2.0f) / RADIAN_COEF;
-    rotate_ratio_fl = ((WHEELBASE + WHEELTRACK) / 2.0f) / RADIAN_COEF;
-    rotate_ratio_bl = ((WHEELBASE + WHEELTRACK) / 2.0f) / RADIAN_COEF;
-    rotate_ratio_br = ((WHEELBASE + WHEELTRACK) / 2.0f) / RADIAN_COEF;
+    rotate_ratio_fr = ((WHEELBASE + WHEELTRACK) / 2.0f -
+                       (-269) + chassis.rotate_y_offset) /
+                      RADIAN_COEF;
+    rotate_ratio_fl = ((WHEELBASE + WHEELTRACK) / 2.0f -
+        (-269) - chassis.rotate_y_offset) /
+                      RADIAN_COEF;
+    rotate_ratio_bl = ((WHEELBASE + WHEELTRACK) / 2.0f +
+        (-269) - chassis.rotate_y_offset) /
+                      RADIAN_COEF;
+    rotate_ratio_br = ((WHEELBASE + WHEELTRACK) / 2.0f +
+        (-269) + chassis.rotate_y_offset) /
+                      RADIAN_COEF;
   }
 
   wheel_rpm_ratio = 60.0f / (PERIMETER);
@@ -464,10 +516,6 @@ void mecanum_cal(){
   VAL_LIMIT(chassis.rotate_sp, -MAX_CHASSIS_VR_SPEED,
             MAX_CHASSIS_VR_SPEED); // deg/s
 
-  //  if(JudgeP->powerInfo.powerBuffer<=40 && reboot){
-  //    power_limit_handle();
-  //  }
-  //  else{
   if (fabs(chassis.strafe_curve) <= fabs(chassis.strafe_sp)) {
     if (chassis.strafe_sp >= 0) {
       chassis.strafe_curve += acceleration_limit_control(
@@ -490,8 +538,6 @@ void mecanum_cal(){
     }
 
   } else if (fabs(chassis.strafe_curve) > fabs(chassis.strafe_sp)){
-    // if(fabs(chassis.strafe_sp) < 0.003){ // check whether the user intended
-    // to stop
     float previous_strafe_curve = chassis.strafe_curve;
     if (chassis.strafe_curve >= 0) {
       chassis.strafe_curve -= deccl_y;
@@ -553,7 +599,7 @@ void mecanum_cal(){
   } else {
     chassis.drive_curve = chassis.drive_sp;
   }
-  // }
+
 
   chassis._motors[FRONT_RIGHT].speed_sp =
       (chassis.strafe_curve - chassis.drive_curve +
@@ -589,8 +635,7 @@ void mecanum_cal(){
     }
   }
 
-  // speed_limit_handle();
-  // Need more consideration!!!s
+
 
   for (i = 0; i < 4; i++) {
     if (fabs(chassis._motors[i].speed_curve) <
@@ -607,7 +652,7 @@ void mecanum_cal(){
           fabs(chassis._motors[i].speed_sp)) {
         chassis._motors[i].speed_curve = chassis._motors[i].speed_sp;
       }
-    } else {
+    }else{
       chassis._motors[i].speed_curve = chassis._motors[i].speed_sp;
     }
   }
@@ -656,7 +701,7 @@ void dodge_move_handle() {
       &dancing_controller, gimbal_p[0].radian_angle, chassis.position_ref);
   float vy = km.vy;
   float vx = km.vx;
-  float angle = (gimbal_p[0].radian_angle - gimbal_initP) * (2.0 / 3.0);
+  float angle = (gimbal_p[0].radian_angle - gimbal_initP) ;
   if (angle > 0) {
     chassis.drive_sp = 0.8 * (vy * cos(angle) + vx * sin(angle));
     chassis.strafe_sp = 0.8 * ((-1) * vy * sin(angle) + vx * cos(angle));
@@ -672,7 +717,7 @@ void follow_gimbal_handle() {
 
   float vy = km.vy + rm.vy;
   float vx = km.vx + rm.vx;
-  float angle = (gimbal_p[0].radian_angle - gimbal_initP) * (2.0 / 3.0);
+  float angle = (gimbal_p[0].radian_angle - gimbal_initP);
   if (angle > 0) {
     chassis.drive_sp = (vy * cos(angle) + vx * sin(angle));
     chassis.strafe_sp = (-1) * vy * sin(angle) + vx * cos(angle);

@@ -68,7 +68,18 @@ static void move_speed_ctrl(uint8_t fast, uint8_t slow)
 
   }
 }
+static void rotate_direction_ctrl(uint8_t clockwise, uint8_t anticlockwise){
+  if(clockwise){
+    km.vw = -60;
+  }
+  else if(anticlockwise){
+    km.vw = 60;
+  }
+  else{
+    km.vw = 0;
+  }
 
+}
 static void move_direction_ctrl(uint8_t forward, uint8_t back,
                                 uint8_t left,    uint8_t right)
 {
@@ -127,6 +138,12 @@ void keyboard_chassis_process(chassisStruct* chassisP,Gimbal_Send_Dbus_canStruct
     keyboard_to_bitmap(pRC);
     if(chassisP->ctrl_mode == SAVE_LIFE ||chassisP->ctrl_mode ==CHASSIS_STOP ){
       // Do nothing. No input
+    }
+    else if(chassisP->ctrl_mode == Hero_Screen){
+      km.x_spd_limit = slide_ratio*0.2 * CHASSIS_KB_MAX_SPEED_X ;
+      km.y_spd_limit = 0.2 * CHASSIS_KB_MAX_SPEED_Y ;
+      move_direction_ctrl(bitmap[KEY_S], bitmap[KEY_W], bitmap[KEY_D], bitmap[KEY_A]);
+      rotate_direction_ctrl(bitmap[KEY_Q],bitmap[KEY_E]);
     }
     else if(bitmap[KEY_E] || bitmap[KEY_Q]){
       if(bitmap[KEY_W] || bitmap[KEY_S] || bitmap[KEY_A] || bitmap[KEY_D]){

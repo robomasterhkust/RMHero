@@ -164,17 +164,17 @@ static void can_processEncoderMessage(CANDriver* const canp, const CANRxFrame* c
             chassis_encoder[BACK_RIGHT].msg_count++;
             chassis_encoder[BACK_RIGHT].msg_count <= 50 ? can_getMotorOffset(&chassis_encoder[BACK_RIGHT],rxmsg) : can_processChassisEncoder(&chassis_encoder[BACK_RIGHT],rxmsg);
           break;
-        case 0x205:
-            chassis_encoder[0].msg_count++;
-            chassis_encoder[0].msg_count <= 50 ? can_getMotorOffset(&chassis_encoder[0],rxmsg) : can_processChassisEncoder(&chassis_encoder[0],rxmsg);
+        case 0x207:
+            chassis_encoder[2].msg_count++;
+            chassis_encoder[2].msg_count <= 50 ? can_getMotorOffset(&chassis_encoder[2],rxmsg) : can_processChassisEncoder(&chassis_encoder[2],rxmsg);
             break;
         case 0x206:
             chassis_encoder[1].msg_count++;
             chassis_encoder[1].msg_count <= 50 ? can_getMotorOffset(&chassis_encoder[1],rxmsg) : can_processChassisEncoder(&chassis_encoder[1],rxmsg);
             break;
-        case 0x207:
-            chassis_encoder[2].msg_count++;
-            chassis_encoder[2].msg_count <= 50 ? can_getMotorOffset(&chassis_encoder[2],rxmsg) : can_processChassisEncoder(&chassis_encoder[2],rxmsg);
+        case 0x205:
+            chassis_encoder[0].msg_count++;
+            chassis_encoder[0].msg_count <= 50 ? can_getMotorOffset(&chassis_encoder[0],rxmsg) : can_processChassisEncoder(&chassis_encoder[0],rxmsg);
             break;
     }
   }

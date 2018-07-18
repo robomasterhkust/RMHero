@@ -4,8 +4,13 @@
  *  Created on: 30 Mar, 2018
  *      Author: ASUS
  */
+#include <canBusProcess.h>
+#include <chassis.h>
 #include "barrelStatus.h"
 #include "judge.h"
+#include "chassis.h"
+
+chassisStruct * p_chassis;
 
 #ifndef CHASSIS
   #define CHASSIS
@@ -81,6 +86,10 @@ static inline void BarrelStatus_txCan(CANDriver *const CANx, const uint16_t SID)
   chSysLock();
   txCan.currentHeatValue = bStatus.currentHeatValue;
   txCan.heatLimit = bStatus.heatLimit;
+  if(p_chassis->ctrl_mode == Hero_Screen)
+    txCan.chassis_mode = 1;
+  else
+      txCan.chassis_mode = 0;
 
   memcpy(&(txmsg.data8), &txCan ,sizeof(BarrelStatus_canStruct));
   chSysUnlock();
@@ -114,6 +123,8 @@ static THD_FUNCTION(barrel_status, p)
 }
 
 void barrelHeatLimitControl_init(void){
+
+  p_chassis = chassis_get();
   barrelStatus_init();
   chThdCreateStatic(barrel_status_wa, sizeof(barrel_status_wa),
                            NORMALPRIO, barrel_status, NULL);

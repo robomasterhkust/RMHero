@@ -8,7 +8,7 @@
 #include "string.h"
 #include "adis16265.h"
 
-#define BARREL_CAN        &CAND1
+#define BARREL_CAN        &CAND2
 
 #define GIMBAL_MOTOR_NUM  2U
 #define CHASSIS_MOTOR_NUM 4U
@@ -94,6 +94,7 @@ typedef struct{
 typedef struct{
   uint16_t heatLimit;
   uint16_t currentHeatValue;
+  uint8_t chassis_mode;
 } BarrelStatus_canStruct;
 
 typedef struct{
