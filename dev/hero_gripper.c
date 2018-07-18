@@ -124,11 +124,6 @@ static void hero_gripper_calibrate(void){
         chThdSleepMilliseconds(2);
     }
 
-/*    gripper_motors[GRIPPER_LIFT_MOTOR].pos_sp = offset[GRIPPER_LIFT_MOTOR] + 60.0f * 19.0f / 360.0f * 8192.0f;
-    gripper_motors[GRIPPER_ARM_MOTOR].pos_sp = offset[GRIPPER_ARM_MOTOR] + 60.0f * 19.0f / 360.0f * 8192.0f;
-    gripper_motors[GRIPPER_HAND_MOTOR].pos_sp = offset[GRIPPER_HAND_MOTOR];
-    offset__ = offset[GRIPPER_ARM_MOTOR];*/
-
     _state = GRIPPER_RUNNING;
     running_state = down_1_open;
 
@@ -503,7 +498,7 @@ void hero_gripper_Init(void){
     spin_sp[ARM_2]          = 90.0f * 19.2f / 360.0f * 8192.0f;
     spin_sp[ARM_3]          = 180.0f * 19.2f / 360.0f * 8192.0f;
 
-    hand_sp[HAND_OPEN]      =  5.5f * 360.0f * 36.0f / 360.0f * 8192.0f;
+    hand_sp[HAND_OPEN]      =  6.8f * 360.0f * 36.0f / 360.0f * 8192.0f;
     hand_sp[HAND_CLOSE]     =  4.0f * 360.0f * 36.0f / 360.0f * 8192.0f;
 
 

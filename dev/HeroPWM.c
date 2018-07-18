@@ -42,33 +42,43 @@ static volatile Can_send_bullet_mouse_struct* p_bullet_out;
 static pBarrelStatus p_heat;
 
 
-static const PWMConfig pwm4cfg = {
-        500000,
-        1000,
-        NULL,
-        {
-                {PWM_OUTPUT_ACTIVE_HIGH, NULL},
-                {PWM_OUTPUT_ACTIVE_HIGH, NULL},
-                {PWM_OUTPUT_DISABLED, NULL},
-                {PWM_OUTPUT_DISABLED, NULL}
-        },
-        0,
-        0
-};
+static int16_t feeder_controlSpeed
+        (const feeder_motorPosStruct* const motor, feeder_pid_controller_t* const controller,
+         const int16_t output_max)
+{
+    float error = motor->pos_sp - motor->_pos;
+
+    controller->error_int += error * controller->ki;
+    controller->error_int = boundOutput(controller->error_int, controller->error_int_max);
+
+
+    float output =
+            error*controller->kp + controller->error_int - motor->_speed * controller->kd;
+
+
+    output = output >  ((float)output_max)?  ((float)output_max):output;
+    output = output < ((float)-output_max)? ((float)-output_max):output;
+
+    return (int16_t) output;
+}
+
 
 static THD_WORKING_AREA(pwm_thd_wa, 512);
 static THD_FUNCTION(pwm_thd, arg) {
     (void)arg;
 
-    pwmEnableChannel(&PWMD4, 0, PWM_PERCENTAGE_TO_WIDTH(&PWMD4, 5000));
-    pwmEnableChannel(&PWMD4, 1, PWM_PERCENTAGE_TO_WIDTH(&PWMD4, 7500-150));
-    chThdSleepMilliseconds(1000);
-    while(1){
-        pwmEnableChannel(&PWMD4, 0, PWM_PERCENTAGE_TO_WIDTH(&PWMD4, 5700));
-        pwmEnableChannel(&PWMD4, 1, PWM_PERCENTAGE_TO_WIDTH(&PWMD4, set_feeder-150));
+    uint32_t tick = chVTGetSystemTimeX();
+    while(1) {
 
-        chThdSleepMilliseconds(10);
+        tick += MS2ST(2);
+        if (tick > chVTGetSystemTimeX())
+            chThdSleepUntil(tick);
+        else
+            tick = chVTGetSystemTimeX();
+
     }
+
+
 }
 
 
@@ -99,6 +109,9 @@ static THD_FUNCTION(pwm_control_thd, arg) {
                 threshold = 2;
                 break;
             case HEATLIMIT_LVL_3:
+                threshold = 2;
+                break;
+            default:
                 threshold = 2;
                 break;
         }
