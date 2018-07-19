@@ -119,7 +119,7 @@ bool chassis_absolute_speed(float i){
 
 void Collision_detection(){
   float Collision_extent = (IMU_Data->accelData[0]*IMU_Data->accelData[0] + IMU_Data->accelData[1]*IMU_Data->accelData[1])/sqrt(IMU_Data->accelData[0]*IMU_Data->accelData[0] + IMU_Data->accelData[1]*IMU_Data->accelData[1]);
-  if(Collision_extent > 15 && chassis.ctrl_mode != Hero_Screen){
+  if(Collision_extent > 12 && chassis.ctrl_mode != Hero_Screen && JudgeP->powerInfo.powerBuffer < 20){
     int i;
     for(i =0; i<4;i++){
       motor_vel_controllers[i].error_int = 0;

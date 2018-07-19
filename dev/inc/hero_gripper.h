@@ -23,6 +23,7 @@ void hero_gripper_Init(void);
 #define ARM_1           0
 #define ARM_2           1
 #define ARM_3           2
+#define ARM_4           3
 
 #define HAND_CLOSE      0
 #define HAND_OPEN       1
@@ -56,7 +57,7 @@ typedef enum {
     middle_3_open,                  // go to middle_3_close
     middle_3_close,                 // go to up_3_close1
     up_3_close1,                    // go to up_1_close
-    up_1_close,                     // go to up_3_close2
+    up_4_close,                     // go to up_3_close2
     up_3_close2,                    // go to up_3_open
     up_3_open                       // go to middle_2_open
 

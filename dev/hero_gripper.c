@@ -1,3 +1,4 @@
+
 #include "ch.h"
 #include "hal.h"
 
@@ -35,15 +36,16 @@ static lpfilterStruct lp_gripper[GRIPPER_MOTOR_NUM];
 static ChassisEncoder_canStruct* hero_gripper_encoders;
 
 static float lift_sp[3];
-static float spin_sp[3];
+static float spin_sp[4];
 static float hand_sp[2];
 
 static gripper_pid_controller_t controllers[GRIPPER_MOTOR_NUM];
 static gripper_motorPosStruct   gripper_motors[GRIPPER_MOTOR_NUM];
+static gripper_pid_controller_t speed_pid_struct;
 
-static const int16_t gripper_output_max[GRIPPER_MOTOR_NUM] = {8000, 16000, 5000};
+static const int16_t gripper_output_max[GRIPPER_MOTOR_NUM] = {12000, 16000, 5000};
 static const float GEAR_RATIO[GRIPPER_MOTOR_NUM] = {36.0f, 19.0f, 19.0f};
-static const float Error_tolerance[GRIPPER_MOTOR_NUM] = {10.f, 10.0f, 180.0f};
+static const float Error_tolerance[GRIPPER_MOTOR_NUM] = {20.0f, 10.0f, 180.0f};
 
 
 
@@ -188,9 +190,32 @@ static void hero_gripper_encoderUpdate(void)
 
 }
 
-static int16_t gripper_controlPos
-        (const gripper_motorPosStruct* const motor, gripper_pid_controller_t* const controller,
+
+static int16_t gripper_controlSpeed
+        (const gripper_motorPosStruct* motor, gripper_pid_controller_t* const controller,
          const int16_t output_max)
+{
+    float error = motor->speed_sp - motor->_speed;
+    float output;
+
+    controller->error_int += error ;
+    controller->error_int = boundOutput(controller->error_int, controller->error_int_max);
+
+
+    output = error*controller->kp + controller->error_int * controller->ki - motor->_speed * controller->kd;
+
+
+    output = output >  ((float)output_max)?  ((float)output_max):output;
+    output = output < ((float)-output_max)? ((float)-output_max):output;
+
+    return (int16_t) output;
+}
+
+
+
+static int16_t gripper_controlPos
+        (gripper_motorPosStruct* motor, gripper_pid_controller_t* const controller,
+         const int16_t output_max, uint8_t id)
 {
     float error = motor->pos_sp - motor->_pos;
     float output;
@@ -198,20 +223,25 @@ static int16_t gripper_controlPos
     controller->error_int += error * controller->ki;
     controller->error_int = boundOutput(controller->error_int, controller->error_int_max);
 
-if(motor->_speed > -1000.0f && motor->_speed < 1000.0f){
-     output =
-            error*controller->kp + controller->error_int ;
-}
-else{
      output =
             error*controller->kp + controller->error_int - motor->_speed * controller->kd;
-}
 
 
-    output = output >  ((float)output_max)?  ((float)output_max):output;
-    output = output < ((float)-output_max)? ((float)-output_max):output;
 
-    return (int16_t) output;
+
+
+    if(id == 1){
+        output = output >  ((float)1000)?  ((float)1000):output;
+        output = output < ((float)-1000)? ((float)-1000):output;
+
+        motor->speed_sp = output;
+        return (int16_t) gripper_controlSpeed(motor, &speed_pid_struct, output_max);
+    }
+    else{
+        output = output >  ((float)output_max)?  ((float)output_max):output;
+        output = output < ((float)-output_max)? ((float)-output_max):output;
+        return output;
+    }
 }
 
 
@@ -252,11 +282,11 @@ static THD_FUNCTION(hero_gripper_control, p)
                 output_max[GRIPPER_HAND_MOTOR] = gripper_output_max[GRIPPER_HAND_MOTOR];
             }
 
-            gripper.output[i] = gripper_controlPos(&gripper_motors[i], &controllers[i], output_max[i]);
+            gripper.output[i] = gripper_controlPos(&gripper_motors[i], &controllers[i], output_max[i], i);
 
             }
         can_motorSetCurrent(HERO_GRIPPER_CAN, HERO_GRIPPER_EID,
-                            gripper.output[GRIPPER_LIFT_MOTOR] , gripper.output[GRIPPER_ARM_MOTOR], gripper.output[GRIPPER_HAND_MOTOR], 0);
+                            gripper.output[GRIPPER_LIFT_MOTOR] +500, gripper.output[GRIPPER_ARM_MOTOR], gripper.output[GRIPPER_HAND_MOTOR], 0);
 
     }
 }
@@ -327,7 +357,7 @@ static THD_FUNCTION(hero_rc_gripper_control, p)
                 }break;
             case middle_3_open:
                 {
-                    if(in_pos == 0 && ( ST2MS(chVTGetSystemTime() - step_start_time)  > 1000 ) ){
+                    if(in_pos == 0 && ( ST2MS(chVTGetSystemTime() - step_start_time)  > 3000 ) ){
                         running_state = middle_2_open;
                         step_start_time = chVTGetSystemTime();
                         break;
@@ -352,14 +382,14 @@ static THD_FUNCTION(hero_rc_gripper_control, p)
                 {
                     if(in_pos == 1 && ( ST2MS(chVTGetSystemTime() - step_start_time) >  300) ){
                         in_pos = 0;
-                        running_state = up_1_close;
+                        running_state = up_4_close;
                         step_start_time = chVTGetSystemTime();
                         break;
                     }
                 }break;
-            case up_1_close:
+            case up_4_close:
                 {
-                    if(in_pos == 1 && ( ST2MS(chVTGetSystemTime() - step_start_time) >  300) ){
+                    if(in_pos == 1 && ( ST2MS(chVTGetSystemTime() - step_start_time) >  1500) ){
                         in_pos = 0;
                         running_state = up_3_close2;
                         step_start_time = chVTGetSystemTime();
@@ -424,10 +454,10 @@ static THD_FUNCTION(hero_rc_gripper_control, p)
                     gripper_motors[GRIPPER_ARM_MOTOR].pos_sp  = offset[GRIPPER_ARM_MOTOR]   - spin_sp[ARM_3];
                     gripper_motors[GRIPPER_HAND_MOTOR].pos_sp = offset[GRIPPER_HAND_MOTOR]  - hand_sp[HAND_CLOSE];
                 }break;
-            case up_1_close:
+            case up_4_close:
                 {
                     gripper_motors[GRIPPER_LIFT_MOTOR].pos_sp = offset[GRIPPER_LIFT_MOTOR]  - lift_sp[LIFT_UP];
-                    gripper_motors[GRIPPER_ARM_MOTOR].pos_sp  = offset[GRIPPER_ARM_MOTOR]   - spin_sp[ARM_1];
+                    gripper_motors[GRIPPER_ARM_MOTOR].pos_sp  = offset[GRIPPER_ARM_MOTOR]   - spin_sp[ARM_4];
                     gripper_motors[GRIPPER_HAND_MOTOR].pos_sp = offset[GRIPPER_HAND_MOTOR]  - hand_sp[HAND_CLOSE];
                 }break;
             case up_3_close2:
@@ -452,7 +482,7 @@ static THD_FUNCTION(hero_rc_gripper_control, p)
 
 
 
-#define GRIPPER_ERROR_INT_MAX 30000
+#define GRIPPER_ERROR_INT_MAX 3000
 void hero_gripper_Init(void){
 
     memset(&gripper_motors, 0, sizeof(gripper_motorPosStruct) * GRIPPER_MOTOR_NUM);
@@ -474,19 +504,28 @@ void hero_gripper_Init(void){
         gripper_motors[i]._pos = 0.0f;
 
         controllers[i].error_int = 0.0f;
-        controllers[i].error_int_max = GRIPPER_ERROR_INT_MAX;
+
     }
+    controllers[0].error_int_max = 30000;
+    controllers[1].error_int_max = 15000;
+    controllers[2].error_int_max = 15000;
 
 
     //gripper_motors[i].pos_sp = gripper_motors[i]._pos;
 
-    controllers[GRIPPER_LIFT_MOTOR].kp = 0.50f;
+    controllers[GRIPPER_LIFT_MOTOR].kp = 0.80f;
     controllers[GRIPPER_LIFT_MOTOR].ki = 0.001f;
     controllers[GRIPPER_LIFT_MOTOR].kd = 5.0f;
 
-    controllers[GRIPPER_ARM_MOTOR].kp  = 0.70f;
+    controllers[GRIPPER_ARM_MOTOR].kp  = 0.070f;
     controllers[GRIPPER_ARM_MOTOR].ki  = 0.0001f;
-    controllers[GRIPPER_ARM_MOTOR].kd  = 7.0f;
+    controllers[GRIPPER_ARM_MOTOR].kd  = 0.30f;
+
+    speed_pid_struct.kp = 6.0f;
+    speed_pid_struct.ki = 0.06f;
+    speed_pid_struct.kd = 0.0f;
+    speed_pid_struct.error_int = 0.0f;
+    speed_pid_struct.error_int_max = 100000.0f;
 
     controllers[GRIPPER_HAND_MOTOR].kp = 0.30f;
     controllers[GRIPPER_HAND_MOTOR].ki = 0.0001f;
@@ -498,7 +537,8 @@ void hero_gripper_Init(void){
 
     spin_sp[ARM_1]          = 10.0f * 19.2f / 360.0f * 8192.0f;
     spin_sp[ARM_2]          = 90.0f * 19.2f / 360.0f * 8192.0f;
-    spin_sp[ARM_3]          = 175.0f * 19.2f / 360.0f * 8192.0f;
+    spin_sp[ARM_3]          = 180.0f * 19.2f / 360.0f * 8192.0f;
+    spin_sp[ARM_4]          = 10.0f * 19.2f / 360.0f * 8192.0f;
 
     hand_sp[HAND_OPEN]      =  6.5f * 360.0f * 36.0f / 360.0f * 8192.0f;
     hand_sp[HAND_CLOSE]     =  4.0f * 360.0f * 36.0f / 360.0f * 8192.0f;

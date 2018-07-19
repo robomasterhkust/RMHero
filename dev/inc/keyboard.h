@@ -92,4 +92,5 @@ void keyboard_chassis_process(chassisStruct*,Gimbal_Send_Dbus_canStruct* );
 void keyboard_reset();
 bool keyboard_enable(Gimbal_Send_Dbus_canStruct* );
 int* Bitmap_get();
+void keyboard_hero_gripper_process(uint8_t * p_gripper_start, uint8_t * key_press, Gimbal_Send_Dbus_canStruct* pRC);
 #endif
