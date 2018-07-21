@@ -24,6 +24,13 @@ int get_shooter_speed(void){
     return 0;
 }
 
+int preload_get_shooter_speed(void){
+    if(shooter_set_speed != 5000){
+        return 1;
+    }
+    return 0;
+}
+
 static const PWMConfig pwm9cfg = {
         500000,
         1000,
@@ -52,6 +59,13 @@ static const PWMConfig pwm4cfg = {
         0
 };
 
+
+static uint8_t prev_RIGHT = 0;
+static uint8_t RIGHT = 0;
+static uint8_t rc_change_mode = 0;
+static uint8_t s2 = 0;
+static uint8_t prev_s2 = 0;
+
 static THD_WORKING_AREA(pwm_thd_wa, 512);
 static THD_FUNCTION(pwm_thd, arg) {
     (void)arg;
@@ -61,18 +75,37 @@ static THD_FUNCTION(pwm_thd, arg) {
     chThdSleepMilliseconds(50);
 
     while(1){
+        prev_RIGHT = RIGHT;
+        RIGHT = rc->mouse.RIGHT;
+
+        prev_s2 = s2;
+        s2 = rc->rc.s2;
+
+        if(prev_s2 == 3 && s2 == 1){
+            rc_change_mode = 1;
+        }
+        else{
+            rc_change_mode = 0;
+        }
+
         last_set_speed = shooter_set_speed;
         if(get_screen_mode() == 1){
             shooter_set_speed = 5000;
         }
         else{
-            shooter_set_speed = 8500;
+            if(  (prev_RIGHT == 0 && RIGHT == 1) || rc_change_mode == 1 ){
+                if(shooter_set_speed == 5000)
+                    shooter_set_speed = 8200;
+                else
+                    shooter_set_speed = 5000;
+            }
         }
-        if(last_set_speed = 5000 && shooter_set_speed != 5000){
+
+        if(last_set_speed == 5000 && shooter_set_speed != 5000){
             shoot_off_tick = chVTGetSystemTimeX();
         }
         pwmEnableChannel(&PWMD9, 0, PWM_PERCENTAGE_TO_WIDTH(&PWMD9, shooter_set_speed));
-        chThdSleepMilliseconds(200);
+        chThdSleepMilliseconds(20);
     }
 }
 
@@ -82,6 +115,8 @@ void shooter_init(void)
     shoot_off_tick = chVTGetSystemTimeX();
     last_set_speed = shooter_set_speed = shoot_off = 0;
     rc = RC_get();
+
+    shooter_set_speed = 5000;
 
     pwmStart(&PWMD9,&pwm9cfg);
     pwmStart(&PWMD4,&pwm4cfg);

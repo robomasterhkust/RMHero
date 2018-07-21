@@ -5,6 +5,8 @@
 #include "canBusProcess.h"
 #include "dbus.h"
 
+#include "shoot.h"
+
 #include "math_misc.h"
 
 #include "preload.h"
@@ -13,7 +15,7 @@
 #define PRELOAD_CAN &CAND1
 #define PRELOAD_CAN_EID 0x200
 
-#define BOOST_CURRENT   -6000
+#define BOOST_CURRENT   (-6000)
 
 #define preload_canBoost() \
     (can_motorSetCurrent(PRELOAD_CAN, PRELOAD_CAN_EID,\
@@ -124,8 +126,10 @@ static THD_FUNCTION(preload_pid_control, p){
     }
 }
 
-
-uint8_t prev_s = 0;
+static uint8_t s1 = 0;
+static uint8_t prev_s = 0;
+static uint8_t prev_LEFT = 0;
+static uint8_t LEFT = 0;
 
 /*static */int bullet_time_out;
 
@@ -145,7 +149,13 @@ static THD_FUNCTION(preload_control, p){
     preload_state = PreLoadStop;
 
     while(!chThdShouldTerminateX()){
-        if(pRC->mouse.LEFT || (pRC->rc.s1 == 2 && prev_s == 3) ){
+
+        prev_s = s1;
+        s1 = pRC->rc.s1;
+
+        prev_LEFT = LEFT;
+        LEFT = pRC->mouse.LEFT;
+        if( (LEFT == 1 && prev_LEFT == 0 && preload_get_shooter_speed() == 1) || (s1 == 2 && prev_s == 3) ){
             systime_t start_time = chVTGetSystemTimeX();
             preload_state = PreLoadBoost;
             PreLoad_Bullet_Out = 0;
@@ -170,7 +180,6 @@ static THD_FUNCTION(preload_control, p){
         else{
             preload_state = PreLoadStop;
         }
-        prev_s = pRC->rc.s1;
         chThdSleepMilliseconds(1);
     }
 

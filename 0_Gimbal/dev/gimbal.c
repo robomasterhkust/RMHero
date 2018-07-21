@@ -86,9 +86,9 @@ static void gimbal_attiCmd(const float dt, const float yaw_theta1) {
     const float max_input_z = 12.0f, max_input_y = 8.0f;
 
     rc_input_z = -mapInput((float) rc->rc.channel2, RC_CH_VALUE_MIN, RC_CH_VALUE_MAX, -max_input_z, max_input_z)
-                 - mapInput((float) rc->mouse.x, -30, 30, -max_input_z, max_input_z);
+                 - mapInput((float) rc->mouse.x, -150, 150, -max_input_z, max_input_z);
     rc_input_y = -mapInput((float) rc->rc.channel3, RC_CH_VALUE_MIN, RC_CH_VALUE_MAX, -max_input_y, max_input_y)
-                 + mapInput((float) rc->mouse.y, -30, 30, -max_input_z, max_input_z);
+                 + mapInput((float) rc->mouse.y, -100, 100, -max_input_z, max_input_z);
 
     float input_z, input_y;
     if (cosf(yaw_theta1) > 0.1f)
@@ -481,8 +481,8 @@ static THD_FUNCTION(gimbal_screenthread, p) {
         gimbal_encoderUpdate(&gimbal.motor[GIMBAL_PITCH], GIMBAL_PITCH);
 
 
-        _error[GIMBAL_YAW] = yaw_init_pos - (M_PI / 2.1f) - gimbal.motor[GIMBAL_YAW]._angle;
-        _error[GIMBAL_PITCH] = pitch_init_pos + (M_PI / 6.0f) - gimbal.motor[GIMBAL_PITCH]._angle;
+        _error[GIMBAL_YAW] = yaw_init_pos - (M_PI / 1.9f) - gimbal.motor[GIMBAL_YAW]._angle;
+        _error[GIMBAL_PITCH] = pitch_init_pos + (M_PI / 5.7f) - gimbal.motor[GIMBAL_PITCH]._angle;
 
 
         gimbal.yaw_iq_cmd = gimbal_controlPos(&_yaw_pos, _error[GIMBAL_YAW],
