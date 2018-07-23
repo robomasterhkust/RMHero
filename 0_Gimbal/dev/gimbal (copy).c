@@ -428,7 +428,7 @@ static THD_FUNCTION(gimbal_screenthread, p) {
                 gimbal_encoderUpdate(&gimbal.motor[GIMBAL_PITCH], GIMBAL_PITCH);
 
                 _error[GIMBAL_YAW] = yaw_init_pos - gimbal.motor[GIMBAL_YAW]._angle;
-                _error[GIMBAL_PITCH] = 0.0f;
+                _error[GIMBAL_PITCH] = pitch_init_pos - gimbal.motor[GIMBAL_PITCH]._angle;
 
 
                 gimbal.yaw_iq_cmd = gimbal_controlPos(&_yaw_pos, _error[GIMBAL_YAW],
