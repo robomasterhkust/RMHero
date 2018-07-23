@@ -129,14 +129,14 @@ int main(void) {
     gimbal_init();
 
     init_state = INIT_COMPLETE;
-    wdgStart(&WDGD1, &wdgcfg); //Start the watchdog
+    //wdgStart(&WDGD1, &wdgcfg); //Start the watchdog
 
     while (true) {
-        if (!power_failure()) {
+        /*if (!power_failure()) {
             wdgReset(&WDGD1);
         } else
             gimbal_kill();
-
+*/
         chThdSleepMilliseconds(200);
     }
 
