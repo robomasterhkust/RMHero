@@ -386,7 +386,7 @@ static THD_FUNCTION(hero_rc_gripper_control, p)
                     step_start_time = chVTGetSystemTime();
                     break;
                 }
-                if(in_pos == 1 && ( ST2MS(chVTGetSystemTime() - step_start_time)  >  300) ){
+                if(in_pos == 1 && ( prev_LEFT == 0 && LEFT == 1) ){
                     in_pos = 0;
                     running_state = middle_3_close;
                     step_start_time = chVTGetSystemTime();
@@ -555,7 +555,7 @@ void hero_gripper_Init(void){
     //gripper_motors[i].pos_sp = gripper_motors[i]._pos;
 
     controllers[GRIPPER_LIFT_MOTOR].kp = 0.50f;
-    controllers[GRIPPER_LIFT_MOTOR].ki = 0.001f;
+    controllers[GRIPPER_LIFT_MOTOR].ki = 0.0015f;
     controllers[GRIPPER_LIFT_MOTOR].kd = 5.0f;
 
     controllers[GRIPPER_ARM_MOTOR].kp  = 0.70f;
@@ -572,17 +572,17 @@ void hero_gripper_Init(void){
     controllers[GRIPPER_HAND_MOTOR].ki = 0.0001f;
     controllers[GRIPPER_HAND_MOTOR].kd = 5.0f;
 
-    lift_sp[LIFT_DOWN]      = -60.0f * 19.0f / 360.0f * 8192.0f;
-    lift_sp[LIFT_MIDDLE]    = -270.0f * 19.0f / 360.0f * 8192.0f;
+    lift_sp[LIFT_DOWN]      = -30.0f * 19.0f / 360.0f * 8192.0f;
+    lift_sp[LIFT_MIDDLE]    = -210.0f * 19.0f / 360.0f * 8192.0f;
     lift_sp[LIFT_UP]        = -430.0f * 19.0f / 360.0f * 8192.0f;
 
     spin_sp[ARM_1]          = 10.0f * 19.2f / 360.0f * 8192.0f;
     spin_sp[ARM_2]          = 90.0f * 19.2f / 360.0f * 8192.0f;
-    spin_sp[ARM_3]          = 181.0f * 19.2f / 360.0f * 8192.0f;
+    spin_sp[ARM_3]          = 183.0f * 19.2f / 360.0f * 8192.0f;
     spin_sp[ARM_4]          = 2.0f * 19.2f / 360.0f * 8192.0f;
 
 
-    hand_sp[HAND_OPEN]      =  6.5f * 360.0f * 36.0f / 360.0f * 8192.0f;
+    hand_sp[HAND_OPEN]      =  6.7f * 360.0f * 36.0f / 360.0f * 8192.0f;
     hand_sp[HAND_CLOSE]     =  4.0f * 360.0f * 36.0f / 360.0f * 8192.0f;
 
 
