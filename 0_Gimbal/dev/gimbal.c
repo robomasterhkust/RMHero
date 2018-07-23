@@ -141,20 +141,15 @@ static void gimbal_attiCmd(const float dt, const float yaw_theta1) {
         yaw_atti_cmd = atan2f(2.0f * (q[0] * q[3] + q[1] * q[2]),
                               1.0f - 2.0f * (q[2] * q[2] + q[3] * q[3]));
         gimbal.pitch_atti_cmd = asinf(2.0f * (q[0] * q[2] - q[3] * q[1]));
-        if (ros_msg->updated){
-          gimbal.pitch_atti_cmd += cv_pos_y;
-          yaw_atti_cmd += cv_pos_z;
-          ros_msg->updated = false;
-        }
+
+        if (yaw_atti_cmd < -2.0f && gimbal.prev_yaw_cmd > 2.0f)
+            gimbal.rev++;
+        else if (yaw_atti_cmd > 2.0f && gimbal.prev_yaw_cmd < -2.0f)
+            gimbal.rev--;
+
+        gimbal.yaw_atti_cmd = yaw_atti_cmd + gimbal.rev * 2 * M_PI;
+        gimbal.prev_yaw_cmd = yaw_atti_cmd;
     }
-
-    if (yaw_atti_cmd < -2.0f && gimbal.prev_yaw_cmd > 2.0f)
-        gimbal.rev++;
-    else if (yaw_atti_cmd > 2.0f && gimbal.prev_yaw_cmd < -2.0f)
-        gimbal.rev--;
-
-    gimbal.yaw_atti_cmd = yaw_atti_cmd + gimbal.rev * 2 * M_PI;
-    gimbal.prev_yaw_cmd = yaw_atti_cmd;
 
     //Avoid gimbal-lock point at pitch = M_PI_2
     bound(&gimbal.pitch_atti_cmd, 1.20f);

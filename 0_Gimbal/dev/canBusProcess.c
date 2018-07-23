@@ -17,10 +17,7 @@ static volatile Ros_msg_canStruct ros_msg={
   .py=0.0,
   .pz=0.0,
   .vy=0.0,
-  .vz=0.0,
-  .updated=false,
-  .last_py=0,
-  .last_pz=0
+  .vz=0.0
 };
 /*
  * 500KBaud, automatic wakeup, automatic recover
@@ -117,18 +114,10 @@ static inline void can_process_ros_command(volatile Ros_msg_canStruct * msg, con
     int16_t msg_pz = (int16_t)rxmsg->data16[1];
     int16_t msg_vy = (int16_t)rxmsg->data16[2];
     int16_t msg_vz = (int16_t)rxmsg->data16[3];
-    if(abs(msg->last_py - msg_py) < 100 && abs(msg->last_pz - msg_pz) < 100){
-      msg->updated = false;
-    }else{
-      msg->updated = true;
-    }
     msg->py = msg_py * 0.001;
     msg->pz = msg_pz * 0.001;
     msg->vy = msg_vy * 0.001;
     msg->vz = msg_vz * 0.001;
-
-    msg->last_py = msg_py;
-    msg->last_pz = msg_pz;
     chSysUnlock();
 }
 

@@ -77,9 +77,6 @@ typedef struct {
     double pz;
     double vy;
     double vz;
-    bool updated;
-    int16_t last_py;
-    int16_t last_pz;
 } Ros_msg_canStruct;
 
 volatile GimbalEncoder_canStruct* can_getGimbalMotor(void);
