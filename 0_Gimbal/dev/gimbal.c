@@ -39,6 +39,8 @@ static float yaw_init_pos = 0.0f, pitch_init_pos = 0.0f;
 static PIMUStruct pIMU;
 static bool rune_state = false;
 
+int ros_can_hz_count = 0;
+
 #define gimbal_canUpdate()   \
   (can_motorSetCurrent(GIMBAL_CAN, GIMBAL_CAN_EID, \
     gimbal.yaw_iq_output, gimbal.pitch_iq_output, 0, 0))
@@ -91,12 +93,17 @@ static void gimbal_attiCmd(const float dt, const float yaw_theta1) {
                  + mapInput((float) rc->mouse.y, -100, 100, -max_input_z, max_input_z);
 
     float input_z, input_y;
-    if (cosf(yaw_theta1) > 0.1f)
+
+    if (cosf(yaw_theta1) > 0.1f && ros_msg->updated && rc->mouse.RIGHT)
         input_z = rc_input_z + cv_input_z / cosf(yaw_theta1);
     else
         input_z = rc_input_z;
 
-    input_y = rc_input_y + cv_input_y;
+    if (ros_msg->updated && rc->mouse.RIGHT){
+      input_y = rc_input_y + cv_input_y;
+    }else{
+      input_y = rc_input_y;
+    }
     bound(&input_z, max_input_z);
     bound(&input_y, max_input_y);
 
@@ -153,6 +160,11 @@ static void gimbal_attiCmd(const float dt, const float yaw_theta1) {
 
     //Avoid gimbal-lock point at pitch = M_PI_2
     bound(&gimbal.pitch_atti_cmd, 1.20f);
+    ros_can_hz_count++;
+    if(ros_can_hz_count == 500){
+      ros_msg->updated = false;
+      ros_can_hz_count = 0;
+    }
 }
 
 #define AXIS_LIMIT_TH_YAW   0.1f //Dual stability threshold to prevent state oscillation
@@ -823,6 +835,7 @@ void gimbal_init(void) {
     pIMU = adis16470_get();
 
     rc = RC_get();
+    ros_msg = can_get_ros_msg();
     gimbal._encoder = can_getGimbalMotor();
     chThdSleepMilliseconds(3);
 

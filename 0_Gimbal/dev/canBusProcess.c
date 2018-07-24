@@ -17,7 +17,8 @@ static volatile Ros_msg_canStruct ros_msg={
   .py=0.0,
   .pz=0.0,
   .vy=0.0,
-  .vz=0.0
+  .vz=0.0,
+  .updated=false
 };
 /*
  * 500KBaud, automatic wakeup, automatic recover
@@ -118,6 +119,7 @@ static inline void can_process_ros_command(volatile Ros_msg_canStruct * msg, con
     msg->pz = msg_pz * 0.001;
     msg->vy = msg_vy * 0.001;
     msg->vz = msg_vz * 0.001;
+    msg->updated = true;
     chSysUnlock();
 }
 
