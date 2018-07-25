@@ -41,6 +41,8 @@ static bool rune_state = false;
 
 int ros_can_hz_count = 0;
 
+int bitmap[15] = {};
+
 #define gimbal_canUpdate()   \
   (can_motorSetCurrent(GIMBAL_CAN, GIMBAL_CAN_EID, \
     gimbal.yaw_iq_output, gimbal.pitch_iq_output, 0, 0))
@@ -87,10 +89,19 @@ static void gimbal_attiCmd(const float dt, const float yaw_theta1) {
 
     const float max_input_z = 12.0f, max_input_y = 8.0f;
 
+
+if(bitmap[5]){
+    rc_input_z = -mapInput((float) rc->rc.channel2, RC_CH_VALUE_MIN, RC_CH_VALUE_MAX, -max_input_z, max_input_z)
+                 - mapInput((float) rc->mouse.x, -300, 300, -max_input_z, max_input_z);
+    rc_input_y = -mapInput((float) rc->rc.channel3, RC_CH_VALUE_MIN, RC_CH_VALUE_MAX, -max_input_y, max_input_y)
+                 + mapInput((float) rc->mouse.y, -200, 200, -max_input_z, max_input_z);
+}
+else{
     rc_input_z = -mapInput((float) rc->rc.channel2, RC_CH_VALUE_MIN, RC_CH_VALUE_MAX, -max_input_z, max_input_z)
                  - mapInput((float) rc->mouse.x, -150, 150, -max_input_z, max_input_z);
     rc_input_y = -mapInput((float) rc->rc.channel3, RC_CH_VALUE_MIN, RC_CH_VALUE_MAX, -max_input_y, max_input_y)
                  + mapInput((float) rc->mouse.y, -100, 100, -max_input_z, max_input_z);
+}
 
     float input_z, input_y;
 
@@ -357,7 +368,7 @@ static inline float gimbal_controlAttitude(pid_controller_t *const atti,
 #define PREV 0U
 #define CURRENT 1U
 uint8_t key_press[2] = {0,0};
-int bitmap[15] = {};
+
 void keyboard_to_bitmap(RC_Ctl_t* pRC){
     uint8_t i = 0;
     //uint32_t n = RC_get()->keyboard.key_code;
@@ -368,6 +379,10 @@ void keyboard_to_bitmap(RC_Ctl_t* pRC){
         n = n/2;
         i++;
     }
+}
+
+int * get_keyboard(void){
+    return bitmap;
 }
 
 

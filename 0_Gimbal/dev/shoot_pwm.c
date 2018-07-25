@@ -60,11 +60,15 @@ static const PWMConfig pwm4cfg = {
 };
 
 
-static uint8_t prev_RIGHT = 0;
-static uint8_t RIGHT = 0;
+/*static uint8_t prev_RIGHT = 0;
+static uint8_t RIGHT = 0;*/
+static uint8_t prev_F_press = 0;
+static uint8_t F_press = 0;
 static uint8_t rc_change_mode = 0;
 static uint8_t s2 = 0;
 static uint8_t prev_s2 = 0;
+
+static int * p_keyboard;
 
 static THD_WORKING_AREA(pwm_thd_wa, 512);
 static THD_FUNCTION(pwm_thd, arg) {
@@ -75,8 +79,11 @@ static THD_FUNCTION(pwm_thd, arg) {
     chThdSleepMilliseconds(50);
 
     while(1){
-        prev_RIGHT = RIGHT;
-        RIGHT = rc->mouse.RIGHT;
+        /*prev_RIGHT = RIGHT;
+        RIGHT = rc->mouse.RIGHT;*/
+
+        prev_F_press = F_press;
+        F_press = p_keyboard[9];
 
         prev_s2 = s2;
         s2 = rc->rc.s2;
@@ -93,7 +100,7 @@ static THD_FUNCTION(pwm_thd, arg) {
             shooter_set_speed = 5000;
         }
         else{
-            if(  (prev_RIGHT == 0 && RIGHT == 1) || rc_change_mode == 1 ){
+            if(  (prev_F_press == 0 && F_press == 1) || rc_change_mode == 1 ){
                 if(shooter_set_speed == 5000)
                     shooter_set_speed = 8200;
                 else
@@ -111,6 +118,8 @@ static THD_FUNCTION(pwm_thd, arg) {
 
 void shooter_init(void)
 {
+
+    p_keyboard = get_keyboard();
 
     shoot_off_tick = chVTGetSystemTimeX();
     last_set_speed = shooter_set_speed = shoot_off = 0;
