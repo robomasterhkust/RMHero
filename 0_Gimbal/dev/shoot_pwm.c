@@ -102,7 +102,7 @@ static THD_FUNCTION(pwm_thd, arg) {
         else{
             if(  (prev_F_press == 0 && F_press == 1) || rc_change_mode == 1 ){
                 if(shooter_set_speed == 5000)
-                    shooter_set_speed = 8200;
+                    shooter_set_speed = 7500;
                 else
                     shooter_set_speed = 5000;
             }

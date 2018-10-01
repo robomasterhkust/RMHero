@@ -155,7 +155,9 @@ static THD_FUNCTION(preload_control, p){
 
         prev_LEFT = LEFT;
         LEFT = pRC->mouse.LEFT;
-        if( (LEFT == 1 && prev_LEFT == 0 && preload_get_shooter_speed() == 1) || (s1 == 2 && prev_s == 3) ){
+        if( (LEFT == 1 && prev_LEFT == 0 && preload_get_shooter_speed() == 1) || (s1 == 2\
+        && prev_s == 3\
+        && preload_get_shooter_speed() == 1) ){
             systime_t start_time = chVTGetSystemTimeX();
             preload_state = PreLoadBoost;
             PreLoad_Bullet_Out = 0;
