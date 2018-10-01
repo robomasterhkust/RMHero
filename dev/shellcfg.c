@@ -285,6 +285,16 @@ void cmd_ultrasonic(BaseSequentialStream * chp, int argc, char *argv[])
 }
 
 
+//extern int bullet_num;
+void cmd_m(BaseSequentialStream * chp, int argc, char *argv[])
+{
+  (void) argc,argv;
+
+
+      chprintf(chp,"bullet_num: %d\n", bullet_num_get());
+}
+
+
 /**
  * @brief array of shell commands, put the corresponding command and functions below
  * {"command", callback_function}
@@ -295,6 +305,7 @@ static const ShellCommand commands[] =
   {"cal", cmd_calibrate},
   {"\xEE", cmd_data},
   {"bullet", cmd_uart},
+  {"m", cmd_m},
 // #ifdef MAVLINK_COMM_TEST
 //   {"mavlink", cmd_mavlink},
 // #endif

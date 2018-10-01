@@ -25,7 +25,6 @@
 #include "bullet_tracker_task.h"
 #include "magazine_cover_task.h"
 
-#include "gimbal.h"
 #include "chassis.h"
 
 #include "exti.h"
@@ -34,7 +33,6 @@
 #include "barrelStatus.h"
 
 #include "hero_gripper.h"
-
 #include "HeroPWM.h"
 
 void shellStart(void);

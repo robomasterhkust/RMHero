@@ -10,7 +10,7 @@ int bitmap[15] = {};
 #define LONG_PRESS_TIME  1000  //ms
 /* key acceleration time */
 #define slide_ratio 1
-#define Up_ratio 0.8
+#define Up_ratio 1.0
 #define Normal_ratio 0.6
 #define Down_ratio 0.2
 
@@ -68,7 +68,18 @@ static void move_speed_ctrl(uint8_t fast, uint8_t slow)
 
   }
 }
+static void rotate_direction_ctrl(uint8_t clockwise, uint8_t anticlockwise){
+  if(clockwise){
+    km.vw = -60;
+  }
+  else if(anticlockwise){
+    km.vw = 60;
+  }
+  else{
+    km.vw = 0;
+  }
 
+}
 static void move_direction_ctrl(uint8_t forward, uint8_t back,
                                 uint8_t left,    uint8_t right)
 {
@@ -128,12 +139,13 @@ void keyboard_chassis_process(chassisStruct* chassisP,Gimbal_Send_Dbus_canStruct
     if(chassisP->ctrl_mode == SAVE_LIFE ||chassisP->ctrl_mode ==CHASSIS_STOP ){
       // Do nothing. No input
     }
-    else if(chassisP->ctrl_mode = Hero_Screen){
-      km.x_spd_limit = Down_ratio * CHASSIS_KB_MAX_SPEED_X ;
-      km.y_spd_limit = Down_ratio * CHASSIS_KB_MAX_SPEED_Y ;
+    else if(chassisP->ctrl_mode == Hero_Screen){
+      km.x_spd_limit = slide_ratio*0.1 * CHASSIS_KB_MAX_SPEED_X ;
+      km.y_spd_limit = 0.2 * CHASSIS_KB_MAX_SPEED_Y ;
       move_direction_ctrl(bitmap[KEY_S], bitmap[KEY_W], bitmap[KEY_D], bitmap[KEY_A]);
+      rotate_direction_ctrl(bitmap[KEY_Q],bitmap[KEY_E]);
     }
-    else if(bitmap[KEY_R]){
+    else if(bitmap[KEY_E] || bitmap[KEY_Q]){
       if(bitmap[KEY_W] || bitmap[KEY_S] || bitmap[KEY_A] || bitmap[KEY_D]){
         chassisP->ctrl_mode = DODGE_MOVE_MODE;
         move_direction_ctrl(bitmap[KEY_W], bitmap[KEY_S], bitmap[KEY_A], bitmap[KEY_D]);
@@ -156,6 +168,8 @@ void keyboard_chassis_process(chassisStruct* chassisP,Gimbal_Send_Dbus_canStruct
    // chassis_operation_func(bitmap);
 
 }
+
+
 
 #define PREV 0U
 #define CURRENT 1U

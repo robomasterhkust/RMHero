@@ -14,8 +14,8 @@
 #include "string.h"
 #include "canBusProcess.h"
 
+//#define INFANTRY
 #define HERO
-
 
 //#define MM17
 #define MM42

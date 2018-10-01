@@ -1,10 +1,7 @@
-OpenWindow="Console", DockArea=RIGHT, x=0, y=4, w=747, h=143, FilterBarShown=0, 
-OpenWindow="Global Data", DockArea=RIGHT, x=0, y=0, w=747, h=113, FilterBarShown=1, 
-OpenWindow="Watched Data", DockArea=RIGHT, x=0, y=1, w=747, h=236, FilterBarShown=1, 
-OpenWindow="Source Files", DockArea=RIGHT, x=0, y=2, w=747, h=341, FilterBarShown=1, 
-OpenWindow="Disassembly", DockArea=RIGHT, x=0, y=3, w=747, h=129, FilterBarShown=0, ExecCountersShown=0
+OpenWindow="Disassembly", DockArea=FLOATING, x=1230, y=205, w=392, h=154, FilterBarShown=0, ExecCountersShown=0
+OpenWindow="Watched Data", DockArea=FLOATING, x=602, y=344, w=549, h=546, FilterBarShown=0, 
+OpenWindow="Source Files", DockArea=FLOATING, x=754, y=84, w=564, h=986, FilterBarShown=1, 
 OpenToolbar="File", Floating=0, x=1, y=0
 OpenToolbar="Debug", Floating=0, x=0, y=0
-TableHeader="Global Data", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Location";"Size";"Type";"Scope"], ColWidths=[135;170;84;48;185;210]
-TableHeader="Watched Data", SortCol="Refresh", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location";"Size";"Refresh";"Type";"Scope"], ColWidths=[168;84;84;48;67;290;91]
-TableHeader="Source Files", SortCol="File", SortOrder="ASCENDING", VisibleCols=["Status";"Size";"#Insts";"File";"Path"], ColWidths=[65;48;57;125;707]
+TableHeader="Watched Data", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location";"Size";"Refresh";"Type";"Scope"], ColWidths=[168;84;84;48;67;235;91]
+TableHeader="Source Files", SortCol="Path", SortOrder="ASCENDING", VisibleCols=["Status";"Size";"#Insts";"File";"Path"], ColWidths=[65;48;57;125;246]

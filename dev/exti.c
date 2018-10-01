@@ -17,7 +17,27 @@
 #include "HeroPWM.h"
 
 //comment out the line below to disable motor testing
-/*#define MOTOR_TEST*/
+//#define MOTOR_TEST
+
+
+
+static void extcb2(EXTDriver *extp, expchannel_t channel)
+{
+
+    (void) extp;
+    (void) channel;
+
+    chSysLockFromISR();
+
+    bullet_in();
+    LEDG_TOGGLE();
+
+    chSysUnlockFromISR();
+
+
+}
+
+
 
 /*
  * Turns on all chassis motor for 1 sec when MotorOn is TRUE
@@ -64,23 +84,6 @@ static THD_FUNCTION(MotorToggleThread, arg)
     }
 }
 #endif
-
-
-static void extcb2(EXTDriver *extp, expchannel_t channel)
-{
-
-    (void) extp;
-    (void) channel;
-
-    chSysLockFromISR();
-
-    bullet_in();
-    LEDG_TOGGLE();
-
-    chSysUnlockFromISR();
-
-
-}
 /*
  * EXTI 10 CALLBACK
  * Configured for motor testing

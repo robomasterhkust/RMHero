@@ -4,6 +4,7 @@
  * @brief   CAN driver configuration file
  * @reference   RM2017_Archive
  */
+#include <canBusProcess.h>
 #include "ch.h"
 #include "hal.h"
 
@@ -57,14 +58,22 @@ volatile Can_send_bullet_mouse_struct* can_get_sent_bullet_mouse(void){
 }
 
 
+
+int16_t last_bullet;
+int16_t bullet_offset = 0;
 static inline void  can_processSendBulletMouseEncoder
         (volatile Can_send_bullet_mouse_struct* db, const CANRxFrame* const rxmsg){
     chSysLock();
     db->LEFT = rxmsg->data8[0];
     db->RIGHT = rxmsg->data8[1];
-    db->bullet = rxmsg->data16[1];
+    last_bullet = db->bullet;
+    if(rxmsg->data16[1] < last_bullet){
+        bullet_offset = last_bullet;
+    }
+    db->bullet = rxmsg->data16[1] + bullet_offset;
     chSysUnlock();
 }
+
 
 static inline void  can_processSendDbusEncoder
         (volatile Gimbal_Send_Dbus_canStruct* db, const CANRxFrame* const rxmsg){
@@ -147,28 +156,32 @@ static void can_processEncoderMessage(CANDriver* const canp, const CANRxFrame* c
     switch(rxmsg->SID)
     {
         case CAN_CHASSIS_FL_FEEDBACK_MSG_ID:
-            can_processChassisEncoder(&extra_encoder[FRONT_LEFT] ,rxmsg);
+            extra_encoder[FRONT_LEFT].msg_count++;
+            extra_encoder[FRONT_LEFT].msg_count <= 50 ? can_getMotorOffset(&extra_encoder[FRONT_LEFT],rxmsg) : can_processChassisEncoder(&extra_encoder[FRONT_LEFT],rxmsg);
             break;
         case CAN_CHASSIS_FR_FEEDBACK_MSG_ID:
-            can_processChassisEncoder(&extra_encoder[FRONT_RIGHT] ,rxmsg);
+            extra_encoder[FRONT_RIGHT].msg_count++;
+            extra_encoder[FRONT_RIGHT].msg_count <= 50 ? can_getMotorOffset(&extra_encoder[FRONT_RIGHT],rxmsg) : can_processChassisEncoder(&extra_encoder[FRONT_RIGHT],rxmsg);
             break;
         case CAN_CHASSIS_BL_FEEDBACK_MSG_ID:
-            can_processChassisEncoder(&extra_encoder[BACK_LEFT] ,rxmsg);
+            extra_encoder[BACK_LEFT].msg_count++;
+            extra_encoder[BACK_LEFT].msg_count <= 50 ? can_getMotorOffset(&extra_encoder[BACK_LEFT],rxmsg) : can_processChassisEncoder(&extra_encoder[BACK_LEFT],rxmsg);
             break;
         case CAN_CHASSIS_BR_FEEDBACK_MSG_ID:
-            can_processChassisEncoder(&extra_encoder[BACK_RIGHT] ,rxmsg);
-            break;
-        case 0x205:
-            chassis_encoder[0].msg_count++;
-            chassis_encoder[0].msg_count <= 50 ? can_getMotorOffset(&chassis_encoder[0],rxmsg) : can_processChassisEncoder(&chassis_encoder[0],rxmsg);
+            extra_encoder[BACK_RIGHT].msg_count++;
+            extra_encoder[BACK_RIGHT].msg_count <= 50 ? can_getMotorOffset(&extra_encoder[BACK_RIGHT],rxmsg) : can_processChassisEncoder(&extra_encoder[BACK_RIGHT],rxmsg);
+          break;
+        case 0x207:
+            chassis_encoder[2].msg_count++;
+            chassis_encoder[2].msg_count <= 50 ? can_getMotorOffset(&chassis_encoder[2],rxmsg) : can_processChassisEncoder(&chassis_encoder[2],rxmsg);
             break;
         case 0x206:
             chassis_encoder[1].msg_count++;
             chassis_encoder[1].msg_count <= 50 ? can_getMotorOffset(&chassis_encoder[1],rxmsg) : can_processChassisEncoder(&chassis_encoder[1],rxmsg);
             break;
-        case 0x207:
-            chassis_encoder[2].msg_count++;
-            chassis_encoder[2].msg_count <= 50 ? can_getMotorOffset(&chassis_encoder[2],rxmsg) : can_processChassisEncoder(&chassis_encoder[2],rxmsg);
+        case 0x205:
+            chassis_encoder[0].msg_count++;
+            chassis_encoder[0].msg_count <= 50 ? can_getMotorOffset(&chassis_encoder[0],rxmsg) : can_processChassisEncoder(&chassis_encoder[0],rxmsg);
             break;
     }
   }
@@ -187,7 +200,6 @@ static void can_processEncoderMessage(CANDriver* const canp, const CANRxFrame* c
             break;
         case CAN_BULLET_SID:
             can_processSendBulletMouseEncoder(&bullet_mouse, rxmsg);
-
     }
   }
 }
