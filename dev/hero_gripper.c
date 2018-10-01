@@ -573,8 +573,8 @@ void hero_gripper_Init(void){
     controllers[GRIPPER_HAND_MOTOR].kd = 5.0f;
 
     lift_sp[LIFT_DOWN]      = -30.0f * 19.0f / 360.0f * 8192.0f;
-    lift_sp[LIFT_MIDDLE]    = -190.0f * 19.0f / 360.0f * 8192.0f;
-    lift_sp[LIFT_UP]        = -430.0f * 19.0f / 360.0f * 8192.0f;
+    lift_sp[LIFT_MIDDLE]    = -180.0f * 19.0f / 360.0f * 8192.0f;
+    lift_sp[LIFT_UP]        = -520.0f * 19.0f / 360.0f * 8192.0f;
 
     spin_sp[ARM_1]          = 10.0f * 19.2f / 360.0f * 8192.0f;
     spin_sp[ARM_2]          = 90.0f * 19.2f / 360.0f * 8192.0f;
